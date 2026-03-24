@@ -44,6 +44,11 @@ public class RestHistoricoController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        // Normalizamos la placa para la búsqueda en la base de datos (sin guion y en mayúsculas)
+        if (placa != null) {
+            placa = placa.trim().replace("-", "").toUpperCase();
+        }
+
         Pageable pageable = PageRequest.of(page, size);
         Page<com.grupo0.cundipark.models.Registro> registrosPage = registroService.buscarConFiltros(desde, hasta, bloqueId, placa, activo, pageable);
         Page<RegistroDTO> registroDTOPage = registrosPage.map(MapperUtil::toRegistroDTO);

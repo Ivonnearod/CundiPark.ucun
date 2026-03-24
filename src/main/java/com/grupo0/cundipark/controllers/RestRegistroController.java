@@ -98,7 +98,7 @@ public class RestRegistroController {
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Registro> registrosPage = registroService.buscarConFiltros(desde, hasta, bloqueId, placa, activo, pageable);
+        Page<Registro> registrosPage = registroService.buscarConFiltros(null, desde, hasta, bloqueId, placa, activo, pageable);
         Page<RegistroDTO> registroDTOPage = registrosPage.map(MapperUtil::toRegistroDTO);
 
         return ResponseEntity.ok(
@@ -142,18 +142,26 @@ public class RestRegistroController {
             if (user == null) {
                 throw new ResourceNotFoundException("Usuario", registroDTO.getUserId());
             }
+        } else {
+            throw new IllegalArgumentException("El ID del usuario es requerido");
         }
 
         Bloque bloque = null;
         if (registroDTO.getBloqueId() != null) {
-            bloque = bloqueService.findById(registroDTO.getBloqueId());
+            bloque = bloqueService.getBloqueById(registroDTO.getBloqueId());
             if (bloque == null) {
                 throw new ResourceNotFoundException("Bloque", registroDTO.getBloqueId());
             }
+            if (bloque.getDisponibles() <= 0) {
+                throw new IllegalArgumentException("El bloque seleccionado no tiene cupos disponibles");
+            }
+        } else {
+            throw new IllegalArgumentException("El ID del bloque es requerido");
         }
 
         Registro registro = new Registro();
-        registro.setPlaca(ValidadorPlaca.formatear(registroDTO.getPlaca()));
+        // Guardamos la placa sin guiones para respetar el límite de 6 caracteres de la BD
+        registro.setPlaca(ValidadorPlaca.formatear(registroDTO.getPlaca()).replace("-", ""));
         registro.setActivo(registroDTO.isActivo());
         registro.setUser(user);
         registro.setBloque(bloque);
@@ -185,7 +193,8 @@ public class RestRegistroController {
             if (!ValidadorPlaca.esValida(registroDTO.getPlaca())) {
                 throw new IllegalArgumentException("Número de placa inválido. Formato: ABC-1234");
             }
-            existente.setPlaca(ValidadorPlaca.formatear(registroDTO.getPlaca()));
+            // Guardamos la placa sin guiones para respetar el límite de 6 caracteres de la BD
+            existente.setPlaca(ValidadorPlaca.formatear(registroDTO.getPlaca()).replace("-", ""));
         }
 
         if (registroDTO.isActivo() != existente.getActivo()) {
@@ -205,7 +214,7 @@ public class RestRegistroController {
         }
 
         if (registroDTO.getBloqueId() != null && (existente.getBloque() == null || !registroDTO.getBloqueId().equals(existente.getBloque().getId()))) {
-            Bloque bloque = bloqueService.findById(registroDTO.getBloqueId());
+            Bloque bloque = bloqueService.getBloqueById(registroDTO.getBloqueId());
             if (bloque == null) {
                 throw new ResourceNotFoundException("Bloque", registroDTO.getBloqueId());
             }

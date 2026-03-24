@@ -13,8 +13,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Entity
 @NoArgsConstructor
+@Entity
 @Table(name = "bloques")
 public class Bloque extends BaseModel {
 

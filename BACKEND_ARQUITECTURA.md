@@ -23,10 +23,9 @@ com/grupo0/cundipark/
 │
 ├──  controllers/               # Controladores REST/MVC
 │   ├── UserController.java        # Gestión de usuarios
+│   ├── SuperUserController.java   # Panel de SuperAdmin
 │   ├── HistoricoController.java   # Registros históricos
-│   ├── HomeController.java        # Dashboard
 │   ├── IndexController.java       # Rutas principales
-│   └── ErrorController.java       # Manejo de errores
 │
 ├──  dtos/                       # Data Transfer Objects
 │   ├── UserDTO.java               # Transfer de usuario
@@ -366,4 +365,3 @@ MIT License - Libre para usar y modificar
 ## ❓ Soporte
 
 Para reportar bugs o sugerencias, abre un issue en el repositorio.
-

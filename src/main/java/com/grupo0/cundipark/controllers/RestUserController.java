@@ -90,7 +90,7 @@ public class RestUserController {
         }
 
         // Verificar si el email ya existe
-        User existente = userService.findByEmail(userDTO.getEmail());
+        User existente = userService.getUserByEmail(userDTO.getEmail());
         if (existente != null) {
             throw new DuplicateResourceException("Usuario", "email", userDTO.getEmail());
         }
@@ -126,7 +126,7 @@ public class RestUserController {
             if (!ValidadorEmail.esValido(userDTO.getEmail())) {
                 throw new IllegalArgumentException("Email inválido");
             }
-            User emailExistente = userService.findByEmail(userDTO.getEmail());
+            User emailExistente = userService.getUserByEmail(userDTO.getEmail());
             if (emailExistente != null) {
                 throw new DuplicateResourceException("Usuario", "email", userDTO.getEmail());
             }
@@ -184,4 +184,3 @@ public class RestUserController {
         );
     }
 }
-

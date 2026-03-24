@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <div th:replace="~{fragments/layout :: header-css}"></div>
+    <title>Error 404 - Página no encontrada | CundiDiPark</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --primary-green: #006633;
+            --dark-green: #004d26;
+            --light-bg: #f8f9fa;
+            --shadow: rgba(0, 102, 51, 0.15);
+        }
+        body {
+            background: linear-gradient(135deg, var(--light-bg) 0%, #e8f5e9 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .error-container {
+            max-width: 600px;
+            text-align: center;
+            padding: 3rem 2rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px var(--shadow);
+        }
+        .error-icon {
+            font-size: 8rem;
+            color: var(--primary-green);
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+        .error-title {
+            font-size: 6rem;
+            font-weight: 800;
+            color: var(--dark-green);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        .error-subtitle {
+            font-size: 1.8rem;
+            color: #495057;
+            margin-bottom: 1.5rem;
+        }
+        .error-message {
+            font-size: 1.15rem;
+            color: #6c757d;
+            margin-bottom: 2.5rem;
+        }
+        .btn-home {
+            background: linear-gradient(90deg, var(--primary-green), var(--dark-green));
+            border: none;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 0.9rem 2.5rem;
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+        .btn-home:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px var(--shadow);
+            background: linear-gradient(90deg, var(--dark-green), var(--primary-green));
+        }
+        .logo-small {
+            height: 60px;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 576px) {
+            .error-icon { font-size: 6rem; }
+            .error-title { font-size: 5rem; }
+            .error-subtitle { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Logo centrado arriba (consistente con otras páginas) -->
+    <div class="error-container">
+        <img th:src="@{/images/LOGO CUNDIPARK.png}" 
+             alt="CundiDiPark Logo" 
+             class="logo-small">
+
+        <i class="fas fa-exclamation-triangle error-icon"></i>
+
+        <h1 class="error-title">404</h1>
+        <h2 class="error-subtitle">¡Ups! Página no encontrada</h2>
+
+        <p class="error-message">
+            La página que buscas no existe, fue movida o el enlace está roto.<br>
+            No te preocupes, ¡vamos de vuelta al parqueadero!
+        </p>
+
+        <a th:href="@{/home}" class="btn btn-lg btn-home text-white">
+            <i class="fas fa-arrow-left me-2"></i> Volver al Inicio
+        </a>
+
+        <p class="mt-4 text-muted small">
+            CundiDiPark - Gestión Inteligente de Parquequeadero UDEC<br>
+            Sede Fusagasugá - Universidad de Cundinamarca
+        </p>
+    </div>
+
+    <div th:replace="~{fragments/layout :: footer-scripts}"></div>
+
+</body>
+</html>

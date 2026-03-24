@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <div th:replace="~{fragments/layout :: header-css}"></div>
+    <title>CundiPark - Panel de Super Usuario</title>
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+        }
+        .sidebar .nav-link {
+            font-weight: 500;
+            color: var(--bs-dark);
+        }
+        .sidebar .nav-link.active {
+            color: var(--bs-primary);
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <h4 class="text-center">CundiPark SuperUser</h4>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/superuser/dashboard}">
+                           <i class="fa fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/superuser/administradores}">
+                            <i class="fa fa-user-shield me-2"></i>Administradores
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/superuser/auditoria}">
+                           <i class="fa fa-list-check me-2"></i>Auditoría
+                        </a>
+                    </li>
+                </ul>
+                <hr>
+                <div class="px-3">
+                    <form th:action="@{/logout}" method="post">
+                        <button class="btn btn-danger w-100" type="submit">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Gestión de Usuarios</h1>
+            </div>
+
+            <!-- Mensajes de Alerta -->
+            <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <strong th:text="${success}"></strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong th:text="${error}"></strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div th:if="${message}" class="alert alert-info alert-dismissible fade show" role="alert">
+                <strong th:text="${message}"></strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Lista de Todos los Usuarios</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Activo</th>
+                                    <th>Fecha de Creación</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="usuario : ${listausuarios}">
+                                    <td th:text="${usuario.id}"></td>
+                                    <td th:text="${usuario.nombre}"></td>
+                                    <td th:text="${usuario.email}"></td>
+                                    <td><span class="badge" th:classappend="${usuario.rol.name() == 'SUPERADMIN'} ? 'bg-danger' : (${usuario.rol.name() == 'ADMIN'} ? 'bg-warning text-dark' : 'bg-secondary')" th:text="${usuario.rol.name()}"></span></td>
+                                    <td><span class="badge" th:classappend="${usuario.activo} ? 'bg-success' : 'bg-secondary'" th:text="${usuario.activo} ? 'Sí' : 'No'"></span></td>
+                                    <td th:text="${#temporals.format(usuario.createdAt, 'dd-MM-yyyy HH:mm')}"></td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-2" th:if="${currentUser != null && !currentUser.id.equals(usuario.id)}">
+                                            <!-- Formulario para cambiar rol -->
+                                            <form th:action="@{/superuser/changerole/{id}(id=${usuario.id})}" method="post" class="d-flex align-items-center gap-1">
+                                                <select name="rol" class="form-select form-select-sm" style="width: auto;">
+                                                    <option th:each="rolValue : ${T(com.grupo0.cundipark.models.RolUsuario).values()}"
+                                                            th:value="${rolValue.name()}"
+                                                            th:text="${rolValue.name()}"
+                                                            th:selected="${rolValue == usuario.rol}">
+                                                    </option>
+                                                </select>
+                                                <button type="submit" class="btn btn-primary btn-sm" title="Guardar Rol"><i class="fas fa-save"></i></button>
+                                            </form>
+                                            <!-- Formulario para eliminar -->
+                                            <form th:action="@{/superuser/delete/{id}(id=${usuario.id})}" method="post" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este usuario? Esta acción no se puede deshacer.');">
+                                                <button type="submit" class="btn btn-danger btn-sm" title="Eliminar Usuario"><i class="fas fa-trash-alt"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<div th:replace="~{fragments/layout :: footer-scripts}"></div>
+</body>
+</html>

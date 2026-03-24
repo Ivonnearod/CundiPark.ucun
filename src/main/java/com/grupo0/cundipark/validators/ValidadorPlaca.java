@@ -6,15 +6,15 @@ public class ValidadorPlaca {
         if (placa == null || placa.trim().isEmpty()) {
             return false;
         }
-        // Formato colombiano: ABC-1234 o ABC1234
-        return placa.matches("^[A-Z]{3}[-]?\\d{4}$");
+        // Formato colombiano para carro: ABC-123 o ABC123
+        return placa.toUpperCase().matches("^[A-Z]{3}[-]?\\d{3}$");
     }
 
     public static String formatear(String placa) {
-        if (!esValida(placa)) {
+        if (placa == null) {
             return null;
         }
         String limpia = placa.replaceAll("-", "").toUpperCase();
-        return limpia.substring(0, 3) + "-" + limpia.substring(3);
+        return limpia.length() == 6 ? limpia.substring(0, 3) + "-" + limpia.substring(3) : null;
     }
 }

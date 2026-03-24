@@ -6,7 +6,7 @@ public class ValidadorEmail {
         if (email == null || email.trim().isEmpty()) {
             return false;
         }
-        return email.matches("^[A-Za-z0-9+_.-]+@(.+)$");
+        return email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$");
     }
 
     public static String normalizar(String email) {

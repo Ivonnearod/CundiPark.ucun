@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <div th:replace="~{fragments/layout :: header-css}"></div>
+    <title>Historial - CundiPark</title>
+</head>
+<body>
+
+    <div th:replace="~{fragments/layout :: navbar(user=${user})}"></div>
+
+    <div class="container mt-4">
+        
+        <!-- Botones de Módulos (Navegación) -->
+        <div th:replace="~{fragments/layout :: module-buttons(active_module='historial')}"></div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-history me-2"></i>Historial de Registros</h5>
+            </div>
+            <div class="card-body">
+                
+                <!-- Filtros de Búsqueda -->
+                <form th:action="@{/historico}" method="get" class="row g-3 mb-4 p-3 bg-light rounded align-items-end">
+                    <div class="col-md-3">
+                        <label for="placa" class="form-label small fw-bold">Placa</label>
+                        <input type="text" class="form-control" id="placa" name="placa" th:value="${placa}" placeholder="Buscar placa...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="desde" class="form-label small fw-bold">Desde</label>
+                        <input type="datetime-local" class="form-control" id="desde" name="desde" th:value="${desde}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="hasta" class="form-label small fw-bold">Hasta</label>
+                        <input type="datetime-local" class="form-control" id="hasta" name="hasta" th:value="${hasta}">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-2"></i>Filtrar</button>
+                    </div>
+                </form>
+
+                <!-- Tabla de Resultados -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Placa</th>
+                                <th>Bloque</th>
+                                <th>Ingreso</th>
+                                <th>Salida</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="registro : ${paginaRegistros.content}">
+                                <td class="fw-bold" th:text="${registro.placa}">AAA-123</td>
+                                <td th:text="${registro.bloque?.nombre}">Bloque A</td>
+                                <td th:text="${#temporals.format(registro.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                                <td th:text="${registro.fechaSalida != null ? #temporals.format(registro.fechaSalida, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                                <td>
+                                    <span th:if="${registro.activo}" class="badge bg-success">En Parqueadero</span>
+                                    <span th:unless="${registro.activo}" class="badge bg-secondary">Finalizado</span>
+                                </td>
+                            </tr>
+                            <tr th:if="${paginaRegistros.empty}">
+                                <td colspan="5" class="text-center py-4 text-muted">No se encontraron registros.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                <nav th:if="${paginaRegistros.totalPages > 1}" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" th:classappend="${paginaRegistros.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/historico(page=${paginaRegistros.number - 1}, placa=${placa}, desde=${desde}, hasta=${hasta})}">Anterior</a>
+                        </li>
+                        <li class="page-item" th:each="i : ${#numbers.sequence(0, paginaRegistros.totalPages - 1)}"
+                            th:classappend="${i == paginaRegistros.number} ? 'active'">
+                            <a class="page-link" th:href="@{/historico(page=${i}, placa=${placa}, desde=${desde}, hasta=${hasta})}" th:text="${i + 1}">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${paginaRegistros.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/historico(page=${paginaRegistros.number + 1}, placa=${placa}, desde=${desde}, hasta=${hasta})}">Siguiente</a>
+                        </li>
+                    </ul>
+                </nav>
+
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: footer-scripts}"></div>
+</body>
+</html>

@@ -1,72 +1,94 @@
 package com.grupo0.cundipark.controllers;
 
-import java.time.LocalDateTime;
-
+import com.grupo0.cundipark.models.Registro;
+import com.grupo0.cundipark.models.User;
+import com.grupo0.cundipark.services.RegistroService;
+import com.grupo0.cundipark.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.grupo0.cundipark.models.Registro;
-import com.grupo0.cundipark.models.User;
-import com.grupo0.cundipark.services.RegistroService;
-import com.grupo0.cundipark.services.UserService;
-
-import jakarta.servlet.http.HttpSession;
+import java.time.LocalDateTime;
 
 @Controller
 public class HistoricoController {
 
-    @Autowired
-    private UserService userService;
+    private static final int PAGE_SIZE = 10;
 
     @Autowired
     private RegistroService registroService;
 
+    @Autowired
+    private UserService userService;
+
+    /**
+     * Obtiene el usuario autenticado actualmente.
+     * @return User o null si no está autenticado.
+     */
+    private User getAuthenticatedUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !("anonymousUser".equals(auth.getPrincipal()))) {
+            return userService.getUserByEmail(auth.getName());
+        }
+        return null;
+    }
+
+    /**
+     * Normaliza una placa: elimina guiones y convierte a mayúsculas.
+     */
+    private String normalizarPlaca(String placa) {
+        if (placa == null || placa.trim().isEmpty()) {
+            return null;
+        }
+        return placa.trim().replace("-", "").toUpperCase();
+    }
+
     @GetMapping("/historico")
     public String historico(
+            @RequestParam(required = false) String placa,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta,
-            @RequestParam(required = false) String placa,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            HttpSession session, 
             Model model) {
-        Long userId = (Long) session.getAttribute("userId");
-        if (userId == null) {
-            return "redirect:/login";
-        }
 
-        User user = userService.getUserById(userId);
+        User user = getAuthenticatedUser();
         if (user == null) {
-            session.invalidate();
             return "redirect:/login";
         }
-        
-        // Validaciones básicas de parámetros
-        if (page < 0) page = 0;
-        if (placa != null && placa.trim().isEmpty()) placa = null;
-        else if (placa != null) placa = placa.trim();
 
-        // Creamos un objeto Pageable para la paginación
-        Pageable pageable = PageRequest.of(page, size);
+        // 1. Crear Pageable con ordenamiento descendente por fecha de creación
+        Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("createdAt").descending());
 
-        // El servicio ahora devuelve un objeto Page, que contiene los registros y la información de paginación
-        Page<Registro> paginaRegistros = registroService.buscarConFiltros(desde, hasta, null, placa, null, pageable); 
+        // 2. Normalizar placa para la búsqueda en la base de datos
+        String placaNormalizada = normalizarPlaca(placa);
 
-        model.addAttribute("user", user);
+        // 3. Llamar al servicio optimizado que delega el filtrado y paginación a la base de datos
+        Page<Registro> paginaRegistros = registroService.buscarConFiltros(
+                user.getId(),
+                desde,
+                hasta,
+                null, // bloqueId no se usa en el historial de usuario
+                placaNormalizada,
+                null, // 'activo' no se filtra, se muestran todos (activos y finalizados)
+                pageable
+        );
+
+        // Agregar atributos al modelo
         model.addAttribute("paginaRegistros", paginaRegistros);
-
-        // Devolvemos los filtros a la vista para que se mantengan en los campos de búsqueda
+        model.addAttribute("user", user);
+        model.addAttribute("placa", placa); // valor original para el input
         model.addAttribute("desde", desde);
         model.addAttribute("hasta", hasta);
-        model.addAttribute("placa", placa);
-        
+
         return "historicoPage";
     }
 }

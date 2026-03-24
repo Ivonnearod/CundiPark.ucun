@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <div th:replace="~{fragments/layout :: header-css}"></div>
+    <title>Admin - CundiPark</title>
+    <style>
+        body { background-color: #f8f9fa; }
+        .card-stat { border: none; border-radius: 10px; color: white; }
+        .bg-gradient-primary { background: linear-gradient(45deg, #4e73df, #224abe); }
+        .bg-gradient-success { background: linear-gradient(45deg, #1cc88a, #13855c); }
+        .bg-gradient-info { background: linear-gradient(45deg, #36b9cc, #258391); }
+        .bg-gradient-warning { background: linear-gradient(45deg, #f6c23e, #dda20a); }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar Admin -->
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#"><i class="fas fa-parking me-2"></i>CundiPark ADMIN</a>
+            <div class="d-flex text-white align-items-center">
+                <span class="me-3">Administrador</span>
+                <form th:action="@{/logout}" method="post" class="m-0">
+                    <button class="btn btn-sm btn-outline-light">Cerrar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 class="mb-4 text-secondary">Panel de Control General</h2>
+
+        <!-- Tarjetas de Estadísticas -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-3">
+                <div class="card card-stat bg-gradient-primary h-100">
+                    <div class="card-body">
+                        <h6 class="text-uppercase mb-2 opacity-75">Usuarios Totales</h6>
+                        <h2 class="fw-bold" th:text="${totalUsuarios}">0</h2>
+                        <i class="fas fa-users fa-2x position-absolute end-0 top-0 m-3 opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stat bg-gradient-success h-100">
+                    <div class="card-body">
+                        <h6 class="text-uppercase mb-2 opacity-75">Vehículos Activos</h6>
+                        <h2 class="fw-bold" th:text="${vehiculosActivos}">0</h2>
+                        <i class="fas fa-car fa-2x position-absolute end-0 top-0 m-3 opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stat bg-gradient-info h-100">
+                    <div class="card-body">
+                        <h6 class="text-uppercase mb-2 opacity-75">Ocupación</h6>
+                        <h2 class="fw-bold"><span th:text="${ocupacionGeneral}">0</span>%</h2>
+                        <div class="progress mt-2" style="height: 5px; background: rgba(255,255,255,0.3);">
+                            <div class="progress-bar bg-white" th:style="'width: ' + ${ocupacionGeneral} + '%'"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stat bg-gradient-warning h-100">
+                    <div class="card-body">
+                        <h6 class="text-uppercase mb-2 opacity-75">Entradas (24h)</h6>
+                        <h2 class="fw-bold" th:text="${entradas24h}">0</h2>
+                        <i class="fas fa-clock fa-2x position-absolute end-0 top-0 m-3 opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Tabla de Últimos Registros -->
+            <div class="col-lg-8">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 bg-white">
+                        <h6 class="m-0 fw-bold text-primary">Últimos Ingresos</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Placa</th>
+                                        <th>Bloque</th>
+                                        <th>Hora Ingreso</th>
+                                        <th>Usuario</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="reg : ${registros}">
+                                        <td class="fw-bold" th:text="${reg.placa}">AAA-123</td>
+                                        <td th:text="${reg.bloque.nombre}">Bloque A</td>
+                                        <td th:text="${#temporals.format(reg.createdAt, 'dd/MM HH:mm')}">10:00</td>
+                                        <td th:text="${reg.user.nombre}">Juan</td>
+                                        <td>
+                                            <span th:if="${reg.activo}" class="badge bg-success">Activo</span>
+                                            <span th:unless="${reg.activo}" class="badge bg-secondary">Finalizado</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estado de Bloques -->
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 bg-white">
+                        <h6 class="m-0 fw-bold text-primary">Estado de Bloques</h6>
+                    </div>
+                    <div class="card-body">
+                        <div th:each="bloque : ${bloques}" class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-bold" th:text="${bloque.nombre}">Bloque A</span>
+                                <span class="small" th:text="${(bloque.capacidad - bloque.disponibles) + '/' + bloque.capacidad}">10/20</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" 
+                                     th:style="'width: ' + ${(bloque.capacidad - bloque.disponibles) * 100.0 / bloque.capacidad} + '%'"
+                                     th:classappend="${bloque.disponibles == 0 ? 'bg-danger' : 'bg-primary'}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: footer-scripts}"></div>
+</body>
+</html>

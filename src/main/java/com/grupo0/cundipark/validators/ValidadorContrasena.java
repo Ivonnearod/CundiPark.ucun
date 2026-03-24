@@ -1,9 +1,14 @@
 package com.grupo0.cundipark.validators;
 
+import java.util.regex.Pattern;
+
 public class ValidadorContrasena {
     
     private static final int MIN_LENGTH = 6;
     private static final int MAX_LENGTH = 100;
+    private static final Pattern CONTIENE_MAYUSCULA = Pattern.compile(".*[A-Z].*");
+    private static final Pattern CONTIENE_MINUSCULA = Pattern.compile(".*[a-z].*");
+    private static final Pattern CONTIENE_NUMERO = Pattern.compile(".*\\d.*");
 
     public static boolean esValida(String contrasena) {
         if (contrasena == null) {
@@ -15,9 +20,9 @@ public class ValidadorContrasena {
         }
         
         // Al menos una mayúscula, una minúscula y un número
-        boolean tieneMayuscula = contrasena.matches(".*[A-Z].*");
-        boolean tieneMinuscula = contrasena.matches(".*[a-z].*");
-        boolean tieneNumero = contrasena.matches(".*\\d.*");
+        boolean tieneMayuscula = CONTIENE_MAYUSCULA.matcher(contrasena).matches();
+        boolean tieneMinuscula = CONTIENE_MINUSCULA.matcher(contrasena).matches();
+        boolean tieneNumero = CONTIENE_NUMERO.matcher(contrasena).matches();
         
         return tieneMayuscula && tieneMinuscula && tieneNumero;
     }
@@ -34,13 +39,13 @@ public class ValidadorContrasena {
         if (contrasena.length() > MAX_LENGTH) {
             errores.add("Máximo " + MAX_LENGTH + " caracteres permitidos");
         }
-        if (!contrasena.matches(".*[A-Z].*")) {
+        if (!CONTIENE_MAYUSCULA.matcher(contrasena).matches()) {
             errores.add("Debe contener al menos una mayúscula");
         }
-        if (!contrasena.matches(".*[a-z].*")) {
+        if (!CONTIENE_MINUSCULA.matcher(contrasena).matches()) {
             errores.add("Debe contener al menos una minúscula");
         }
-        if (!contrasena.matches(".*\\d.*")) {
+        if (!CONTIENE_NUMERO.matcher(contrasena).matches()) {
             errores.add("Debe contener al menos un número");
         }
         return errores;

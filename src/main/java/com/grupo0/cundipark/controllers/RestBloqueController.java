@@ -53,10 +53,7 @@ public class RestBloqueController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BloqueDTO>> getBloqueById(@PathVariable Long id) {
-        Bloque bloque = bloqueService.findById(id);
-        if (bloque == null) {
-            throw new ResourceNotFoundException("Bloque", id);
-        }
+        Bloque bloque = bloqueService.getBloqueById(id);
         return ResponseEntity.ok(
                 ApiResponse.success(MapperUtil.toBloqueDTO(bloque), "Bloque obtenido")
         );
@@ -96,10 +93,7 @@ public class RestBloqueController {
     public ResponseEntity<ApiResponse<BloqueDTO>> updateBloque(
             @PathVariable Long id,
             @Valid @RequestBody Bloque bloque) {
-        Bloque existente = bloqueService.findById(id);
-        if (existente == null) {
-            throw new ResourceNotFoundException("Bloque", id);
-        }
+        Bloque existente = bloqueService.getBloqueById(id);
 
         // Validar nombre si cambió
         if (bloque.getNombre() != null && !existente.getNombre().equals(bloque.getNombre())) {
@@ -140,10 +134,7 @@ public class RestBloqueController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteBloque(@PathVariable Long id) {
-        Bloque bloque = bloqueService.findById(id);
-        if (bloque == null) {
-            throw new ResourceNotFoundException("Bloque", id);
-        }
+        Bloque bloque = bloqueService.getBloqueById(id);
         bloqueService.deleteBloque(id);
         return ResponseEntity.ok(
                 ApiResponse.success(null, "Bloque eliminado exitosamente")
@@ -157,10 +148,7 @@ public class RestBloqueController {
      */
     @GetMapping("/{id}/disponibilidad")
     public ResponseEntity<ApiResponse<DisponibilidadDTO>> getDisponibilidad(@PathVariable Long id) {
-        Bloque bloque = bloqueService.findById(id);
-        if (bloque == null) {
-            throw new ResourceNotFoundException("Bloque", id);
-        }
+        Bloque bloque = bloqueService.getBloqueById(id);
 
         DisponibilidadDTO disponibilidad = new DisponibilidadDTO(
                 bloque.getId(),
