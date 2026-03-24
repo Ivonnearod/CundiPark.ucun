@@ -21,6 +21,10 @@ pom.xml.bak
 hs_err_pid*.log
 replay_pid*.log
 
+# Base de datos y Archivos locales
+*.db
+data/
+
 # Sistema Operativo
 .DS_Store
 Thumbs.db
