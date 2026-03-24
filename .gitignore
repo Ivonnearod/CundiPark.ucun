@@ -1,1 +1,27 @@
-/cundipark/mavenproject1/target/
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDEs
+.classpath
+.project
+.settings/
+.vscode/
+.idea/
+*.iml
+
+# Logs y Archivos temporales
+logs/
+*.log
+*.bak
+*.tmp
+pom.xml.bak
+hs_err_pid*.log
+replay_pid*.log
+
+# Sistema Operativo
+.DS_Store
+Thumbs.db
+
