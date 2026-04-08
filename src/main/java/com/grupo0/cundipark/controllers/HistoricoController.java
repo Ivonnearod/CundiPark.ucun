@@ -2,6 +2,7 @@ package com.grupo0.cundipark.controllers;
 
 import com.grupo0.cundipark.models.Registro;
 import com.grupo0.cundipark.models.User;
+import com.grupo0.cundipark.models.RolUsuario;
 import com.grupo0.cundipark.services.RegistroService;
 import com.grupo0.cundipark.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +38,10 @@ public class HistoricoController {
     private User getAuthenticatedUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !("anonymousUser".equals(auth.getPrincipal()))) {
-            return userService.getUserByEmail(auth.getName());
+            String email = auth.getName();
+            if (email != null) {
+                return userService.getUserByEmail(email.toLowerCase().trim());
+            }
         }
         return null;
     }
@@ -57,12 +61,29 @@ public class HistoricoController {
             @RequestParam(required = false) String placa,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime hasta,
+            @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "0") int page,
             Model model) {
 
-        User user = getAuthenticatedUser();
-        if (user == null) {
+        User currentUser = getAuthenticatedUser();
+        if (currentUser == null) {
             return "redirect:/login";
+        }
+
+        // Lógica de segmentación: Si es Admin/SuperAdmin y se pasa un userId, filtramos por ese usuario.
+        // De lo contrario, filtramos por el usuario actual.
+        Long targetUserId = currentUser.getId();
+        User targetUser = currentUser;
+
+        // Lógica de segmentación administrativa unificada
+        boolean esAdministrativo = currentUser.getRol() == RolUsuario.ADMIN || currentUser.getRol() == RolUsuario.SUPERADMIN;
+
+        if (esAdministrativo && userId != null) {
+            User userToView = userService.getUserById(userId);
+            if (userToView != null) {
+                targetUserId = userId;
+                targetUser = userToView;
+            }
         }
 
         // 1. Crear Pageable con ordenamiento descendente por fecha de creación
@@ -73,7 +94,7 @@ public class HistoricoController {
 
         // 3. Llamar al servicio optimizado que delega el filtrado y paginación a la base de datos
         Page<Registro> paginaRegistros = registroService.buscarConFiltros(
-                user.getId(),
+                targetUserId,
                 desde,
                 hasta,
                 null, // bloqueId no se usa en el historial de usuario
@@ -84,7 +105,8 @@ public class HistoricoController {
 
         // Agregar atributos al modelo
         model.addAttribute("paginaRegistros", paginaRegistros);
-        model.addAttribute("user", user);
+        model.addAttribute("user", currentUser);
+        model.addAttribute("targetUser", targetUser);
         model.addAttribute("placa", placa); // valor original para el input
         model.addAttribute("desde", desde);
         model.addAttribute("hasta", hasta);

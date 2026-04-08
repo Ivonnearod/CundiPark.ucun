@@ -15,18 +15,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.grupo0.cundipark.models.Bloque;
+import com.grupo0.cundipark.models.Vehiculo;
 import com.grupo0.cundipark.models.Registro;
+import com.grupo0.cundipark.exceptions.ResourceNotFoundException;
 import com.grupo0.cundipark.models.RolUsuario;
 import com.grupo0.cundipark.models.User;
 import com.grupo0.cundipark.services.BloqueService;
 import com.grupo0.cundipark.services.RegistroService;
 import com.grupo0.cundipark.services.UserService;
+import com.grupo0.cundipark.services.VehiculoService;
 import com.grupo0.cundipark.validators.ValidadorContrasena;
 import com.grupo0.cundipark.validators.ValidadorEmail;
 import com.grupo0.cundipark.validators.ValidadorPlaca;
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,6 +46,9 @@ public class UserController {
     @Autowired
     private RegistroService registroService;
 
+    @Autowired
+    private VehiculoService vehiculoService;
+
     /**
      * Método de ayuda para obtener el usuario autenticado actualmente.
      * Centraliza la lógica de autenticación para evitar duplicación de código.
@@ -50,12 +57,23 @@ public class UserController {
     private User getAuthenticatedUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !("anonymousUser".equals(auth.getPrincipal()))) {
-            return userService.getUserByEmail(auth.getName());
+            String email = auth.getName();
+            if (email != null) {
+                return userService.getUserByEmail(email.toLowerCase().trim());
+            }
         }
         return null;
     }
 
-    @GetMapping({"/", "/home"})
+    @GetMapping("/")
+    public String index() {
+        if (getAuthenticatedUser() != null) {
+            return "redirect:/home";
+        }
+        return "index";
+    }
+
+    @GetMapping("/home")
     public String home(Model model) {
         User user = getAuthenticatedUser();
         if (user == null) {
@@ -63,26 +81,29 @@ public class UserController {
         }
 
         // Redirección basada en rol para que cada usuario vea su dashboard correcto
+         if (user.getRol() == RolUsuario.SUPERADMIN) {
+            return "redirect:/superuser/dashboard";
+        }
         if (user.getRol() == RolUsuario.ADMIN) {
             return "redirect:/admin/dashboard";
-        }
-        if (user.getRol() == RolUsuario.SUPERADMIN) {
-            return "redirect:/superuser/dashboard";
         }
 
         // Lógica para el dashboard de usuario normal (USER)
         model.addAttribute("user", user);
+        
+        int hora = LocalDateTime.now().getHour();
+        String saludo = (hora < 12) ? "¡Buenos días!" : (hora < 18) ? "¡Buenas tardes!" : "¡Buenas noches!";
+        model.addAttribute("saludo", saludo);
+        
         model.addAttribute("vehiculoActual", registroService.findVehiculoActivoPorUsuario(user));
         // Filtrar solo bloques activos para el formulario
         List<Bloque> bloquesActivos = bloqueService.getAllBloques().stream()
-                .filter(Bloque::getActivo)
                 .filter(b -> Boolean.TRUE.equals(b.getActivo()))
                 .collect(Collectors.toList());
         model.addAttribute("bloques", bloquesActivos);
         // El historial se consulta ahora en su propia página /historico
 
         return "dashboard";
-        return "home";
     }
 
     @GetMapping("/login")
@@ -97,7 +118,10 @@ public class UserController {
             long vehiculosActivos = registroService.findByActivoTrue().size();
             int capacidadTotal = todosBloques.stream().mapToInt(Bloque::getCapacidad).sum();
             double ocupacion = (capacidadTotal > 0) ? ((double) vehiculosActivos / capacidadTotal) * 100 : 0;
+            
             model.addAttribute("ocupacion", String.format("%.1f", ocupacion));
+            String claseOcupacion = (ocupacion < 60) ? "progress-low" : (ocupacion < 90) ? "progress-medium" : "progress-high";
+            model.addAttribute("claseOcupacion", claseOcupacion);
         } catch (Exception e) {
             model.addAttribute("ocupacion", "0.0");
         }
@@ -115,25 +139,11 @@ public class UserController {
 
     @PostMapping("/registration")
     public String registerUser(@Valid @ModelAttribute("user") User user, BindingResult result, HttpSession session, RedirectAttributes redirectAttributes) {
-        // 1. Validar formato de email
-        if (user.getEmail() != null && !ValidadorEmail.esValido(user.getEmail())) {
-            result.rejectValue("email", "error.user", "El formato del email es inválido.");
-        } else if (user.getEmail() != null) {
-            // Normalizar email antes de cualquier operación
+        // Normalizar email
+        if (user.getEmail() != null) {
             user.setEmail(user.getEmail().toLowerCase().trim());
         }
 
-        // 2. Validar fortaleza de la contraseña
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            java.util.List<String> erroresContrasena = ValidadorContrasena.obtenerErrores(user.getPassword());
-            if (!erroresContrasena.isEmpty()) {
-                for (String error : erroresContrasena) {
-                    result.rejectValue("password", "error.user", error);
-                }
-            }
-        }
-
-        // 3. Validar que las contraseñas coincidan
         if (user.getPassword() != null && !user.getPassword().equals(user.getPasswordConfirmation())) {
             result.rejectValue("passwordConfirmation", "error.user", "Las contraseñas no coinciden");
         }
@@ -155,16 +165,13 @@ public class UserController {
     }
 
     @PostMapping("/entrada")
-    public String registrarEntrada(@RequestParam("placa") String placa, @RequestParam("bloqueId") Long bloqueId, RedirectAttributes redirectAttributes) {
+    public String registrarEntrada(@RequestParam("vehiculoId") Long vehiculoId, 
+                                 @RequestParam("bloqueId") Long bloqueId, 
+                                 RedirectAttributes redirectAttributes) {
         User user = getAuthenticatedUser();
         if (user == null) {
             redirectAttributes.addFlashAttribute("error", "Su sesión ha expirado. Por favor, inicie sesión de nuevo.");
             return "redirect:/login";
-        }
-
-        if (!ValidadorPlaca.esValida(placa)) {
-            redirectAttributes.addFlashAttribute("error", "Placa inválida. Use formato ABC-123 o ABC123");
-            return "redirect:/home";
         }
 
         if (registroService.findVehiculoActivoPorUsuario(user) != null) {
@@ -172,24 +179,28 @@ public class UserController {
             return "redirect:/home";
         }
 
+        // Obtener el vehículo y validar su existencia y vigencia de documentos
+        Vehiculo vehiculo = vehiculoService.getVehiculoById(vehiculoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehiculo", vehiculoId));
+
+        if (Boolean.FALSE.equals(vehiculo.isSoatVigente()) || Boolean.FALSE.equals(vehiculo.isTecnomecanicaVigente())) {
+            redirectAttributes.addFlashAttribute("error", "No se permite el ingreso: El SOAT y la Revisión Tecnomecánica del vehículo deben estar vigentes.");
+            return "redirect:/home";
+        }
+
         Bloque bloque = bloqueService.getBloqueById(bloqueId);
         if (bloque == null || bloque.getDisponibles() <= 0) {
-            redirectAttributes.addFlashAttribute("error", "El bloque seleccionado no tiene cupos disponibles.");
+            redirectAttributes.addFlashAttribute("error", "El bloque seleccionado no tiene cupos disponibles."); // Recargar bloque para asegurar disponibilidad
             return "redirect:/home";
         }
 
         try {
-            Registro registro = new Registro();
-            // Guardamos la placa sin guiones para respetar el límite de 6 caracteres de la base de datos
-            registro.setPlaca(ValidadorPlaca.formatear(placa).replace("-", ""));
-            registro.setUser(user);
-            registro.setBloque(bloque);
-            registro.setActivo(true);
-            
-            registroService.saveRegistro(registro);
+            registroService.registrarEntrada(vehiculo, user, bloque);
             redirectAttributes.addFlashAttribute("success", "Entrada registrada exitosamente.");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al procesar la entrada: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error inesperado al procesar la entrada.");
         }
         
         return "redirect:/home";
@@ -206,20 +217,29 @@ public class UserController {
         Registro registro = registroService.getRegistroById(id);
         
         // Validación de seguridad: el usuario solo puede sacar su propio vehículo
-        if (registro == null || !registro.getUser().getId().equals(user.getId())) {
+        // O si el usuario es administrador
+        boolean esAdmin = user.getRol() == RolUsuario.ADMIN || user.getRol() == RolUsuario.SUPERADMIN;
+        boolean esPropio = registro != null && registro.getUser().getId().equals(user.getId());
+
+        if (registro == null || (!esPropio && !esAdmin)) {
             redirectAttributes.addFlashAttribute("error", "Operación no autorizada.");
             return "redirect:/home";
         }
 
         try {
-            registro.setActivo(false);
-            registro.setFechaSalida(LocalDateTime.now());
-            registroService.saveRegistro(registro);
+            // Llamada al método transaccional del servicio
+            registroService.registrarSalida(id);
             redirectAttributes.addFlashAttribute("success", "Salida registrada exitosamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Error al procesar la salida: " + e.getMessage());
         }
         
+        // Redirección inteligente tras la salida según el rol
+        if (user.getRol() == RolUsuario.SUPERADMIN) {
+            return "redirect:/superuser/dashboard";
+        } else if (user.getRol() == RolUsuario.ADMIN) {
+            return "redirect:/admin/dashboard";
+        }
         return "redirect:/home";
     }
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
-    <div th:replace="~{fragments/layout :: header-css}"></div>
+    <div th:replace="~{layout :: header-css}"></div>
     <title>Consulta de Vehículo - CundiDiPark</title>
     <style>
         :root {
@@ -27,7 +27,7 @@
             border: none;
         }
         .card-header {
-            background: var(--primary-green);
+            background: var(--primary-blue);
             color: white;
             padding: 1.8rem;
             text-align: center;
@@ -41,14 +41,14 @@
             margin-bottom: 1rem;
         }
         .btn-volver {
-            background: var(--primary-green);
+            background: var(--primary-blue);
             border: none;
             font-weight: 600;
             padding: 0.75rem 1.5rem;
             transition: all 0.3s;
         }
         .btn-volver:hover {
-            background: var(--dark-green);
+            background: var(--dark-blue);
             transform: translateY(-2px);
         }
         .alert-result {
@@ -62,7 +62,7 @@
     </style>
 </head>
 <body>
-    <div th:replace="~{fragments/layout :: navbar(user=${user})}"></div>
+    <div th:replace="~{layout :: navbar(user=${user})}"></div>
 
     <div class="container">
         <div class="consulta-card">
@@ -110,6 +110,6 @@
         </div>
     </div>
 
-    <div th:replace="~{fragments/layout :: footer-scripts}"></div>
+    <div th:replace="~{layout :: footer-scripts}"></div>
 </body>
 </html>

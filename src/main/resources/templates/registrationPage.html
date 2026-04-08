@@ -1,49 +1,49 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
+    <div th:replace="~{layout :: header-css}"></div>
     <title>Registro - CundiPark</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
-            background: linear-gradient(135deg, #f4f6f9, #e9ecef);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: linear-gradient(135deg, #f8f9fa 0%, var(--light-blue) 100%);
             min-height: 100vh;
-            padding: 20px 0;
+            padding: 2rem 0;
         }
         .register-card {
             width: 100%;
-            max-width: 550px;
+            max-width: 800px;
+            margin: 0 auto;
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px var(--shadow);
+            overflow: hidden;
+            background: white;
         }
         .register-header {
-            background: linear-gradient(45deg, #198754, #157347);
+            background: linear-gradient(45deg, var(--primary-blue), var(--dark-blue));
             color: white;
-            padding: 30px;
-            border-top-left-radius: 15px;
-            border-top-right-radius: 15px;
+            padding: 2.5rem;
             text-align: center;
         }
-        .register-header h2 {
-            margin: 0;
-            font-weight: 700;
-        }
+        .register-logo { height: 70px; margin-bottom: 1rem; filter: brightness(0) invert(1); }
         .form-control:focus {
-            box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+            box-shadow: 0 0 0 0.25rem var(--shadow);
+            border-color: var(--primary-blue);
         }
         .btn-register {
-            background-color: #198754;
+            background-color: var(--primary-blue);
             border: none;
             font-weight: 600;
             padding: 12px;
         }
         .btn-register:hover {
-            background-color: #157347;
+            background-color: var(--dark-blue);
+            transform: translateY(-2px);
+        }
+        .section-title {
+            border-left: 4px solid var(--primary-blue);
+            padding-left: 10px;
+            margin: 1.5rem 0 1rem 0;
         }
         .text-danger {
             font-size: 0.875em;
@@ -53,7 +53,8 @@
 <body>
     <div class="register-card">
         <div class="register-header">
-            <h2><i class="fas fa-user-plus me-2"></i>Crear Cuenta</h2>
+            <img th:src="@{/images/LOGO CUNDIPARK.png}" alt="Logo" class="register-logo" onerror="this.style.display='none'">
+            <h2 class="fw-bold mb-0">Crear Cuenta</h2>
             <p class="mb-0 mt-2 opacity-75">Únete a CundiPark</p>
         </div>
         <div class="card-body p-4 p-md-5">
@@ -64,18 +65,56 @@
                     <p th:each="err : ${#fields.globalErrors()}" th:text="${err}"></p>
                 </div>
 
-                <div class="mb-3">
-                    <label for="nombre" class="form-label">Nombre Completo</label>
-                    <input type="text" class="form-control form-control-lg" th:field="*{nombre}" required>
-                    <div class="text-danger" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></div>
+                <h5 class="section-title text-primary fw-bold">1. Datos Personales</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="nombre" class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" th:field="*{nombre}" required placeholder="Ej: Juan Pérez">
+                        <div class="text-danger" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="telefono" class="form-label">Teléfono de Contacto</label>
+                        <input type="tel" class="form-control" th:field="*{telefono}" required placeholder="Ej: 3101234567">
+                    </div>
                 </div>
 
                 <div class="mb-3">
                     <label for="email" class="form-label">Correo Electrónico</label>
-                    <input type="email" class="form-control form-control-lg" th:field="*{email}" required>
+                    <input type="email" class="form-control" th:field="*{email}" required placeholder="usuario@udec.edu.co">
                     <div class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
                 </div>
 
+                <h5 class="section-title text-primary fw-bold">2. Vinculación Institucional</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="tipoVinculacion" class="form-label">Tipo de Usuario</label>
+                        <select class="form-select" th:field="*{tipoVinculacion}" required>
+                            <option value="">Seleccione...</option>
+                            <option value="Estudiante">Estudiante</option>
+                            <option value="Docente">Docente</option>
+                            <option value="Administrativo">Administrativo</option>
+                            <option value="Visitante">Visitante</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="programa" class="form-label">Programa / Facultad / Dependencia</label>
+                        <input type="text" class="form-control" th:field="*{programa}" placeholder="Ej: Ingeniería de Sistemas">
+                    </div>
+                </div>
+
+                <h5 class="section-title text-primary fw-bold">3. Información del Vehículo</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="soatVencimiento" class="form-label"><i class="fas fa-file-medical me-1"></i>Vencimiento SOAT</label>
+                        <input type="date" class="form-control" th:field="*{soatVencimiento}" required>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <label for="tecnoVencimiento" class="form-label"><i class="fas fa-tools me-1"></i>Vencimiento Técnico-Mecánica</label>
+                        <input type="date" class="form-control" th:field="*{tecnoVencimiento}" required>
+                    </div>
+                </div>
+
+                <h5 class="section-title text-primary fw-bold">4. Seguridad de la Cuenta</h5>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="password" class="form-label">Contraseña</label>
@@ -90,15 +129,15 @@
                 </div>
                 
                 <div class="d-grid">
-                    <button type="submit" class="btn btn-success btn-lg btn-register">Registrarme</button>
+                    <button type="submit" class="btn btn-primary btn-lg btn-register text-white">Registrarme</button>
                 </div>
             </form>
             <hr class="my-4">
             <div class="text-center">
-                <p>¿Ya tienes una cuenta? <a th:href="@{/login}">Inicia sesión</a></p>
+                <p>¿Ya tienes una cuenta? <a th:href="@{/login}" class="fw-bold text-decoration-none" style="color: var(--primary-blue);">Inicia sesión</a></p>
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <div th:replace="~{layout :: footer-scripts}"></div>
 </body>
 </html>

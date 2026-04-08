@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <div th:replace="~{fragments/layout :: header-css}"></div>
+    <div th:replace="~{layout :: header-css}"></div>
     <title>Dashboard - CundiPark</title>
     <style>
-        body { background-color: #f4f6f9; }
-        .card-dashboard { border: none; border-radius: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.05); background: white; overflow: hidden; }
-        .card-header-custom { background: linear-gradient(45deg, #0d6efd, #0a58ca); color: white; padding: 15px 20px; font-weight: 600; }
+        body { background-color: #f8f9fa; }
+        .card-dashboard { border: none; border-radius: 16px; box-shadow: 0 10px 30px var(--shadow); background: white; overflow: hidden; }
+        .card-header-custom { background: linear-gradient(45deg, var(--primary-blue), var(--dark-blue)); color: white; padding: 20px; font-weight: 600; text-align: center; }
         .status-badge { font-size: 1.2em; padding: 10px 20px; border-radius: 50px; }
         .info-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #6c757d; font-weight: bold; }
         .info-value { font-size: 1.5rem; font-weight: 700; color: #212529; }
@@ -14,12 +14,12 @@
 </head>
 <body>
 
-    <div th:replace="~{fragments/layout :: navbar(user=${user})}"></div>
+    <div th:replace="~{layout :: navbar(user=${user})}"></div>
 
     <div class="container mt-4">
         
         <!-- Botones de Módulos (Navegación) -->
-        <div th:replace="~{fragments/layout :: module-buttons(active_module='vehiculo')}"></div>
+        <div th:replace="~{layout :: module-buttons(active_module='vehiculo')}"></div>
 
         <!-- Mensajes de Alerta -->
         <div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
@@ -36,7 +36,7 @@
             <div class="col-lg-8">
                 <div class="card card-dashboard h-100">
                     <div class="card-header-custom">
-                        <i class="fas fa-info-circle me-2"></i>Estado de tu Vehículo
+                        <h4 class="mb-0"><i class="fas fa-car me-2"></i>Estado de tu Vehículo</h4>
                     </div>
                     <div class="card-body p-5 text-center">
                         
@@ -87,8 +87,8 @@
             <!-- SECCIÓN 2: REGISTRO DE VEHÍCULOS (Entrada) -->
             <div class="col-lg-4">
                 <div class="card card-dashboard h-100">
-                    <div class="card-header-custom bg-secondary" style="background: #495057;">
-                        <i class="fas fa-edit me-2"></i>Registrar Entrada
+                    <div class="card-header-custom" style="background: #495057;">
+                        <h4 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>Registrar Entrada</h4>
                     </div>
                     <div class="card-body p-4">
                         <div th:if="${vehiculoActual != null}" class="alert alert-warning text-center">
@@ -122,6 +122,6 @@
         </div>
     </div>
 
-    <div th:replace="~{fragments/layout :: footer-scripts}"></div>
+    <div th:replace="~{layout :: footer-scripts}"></div>
 </body>
 </html>

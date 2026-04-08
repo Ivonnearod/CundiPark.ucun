@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <div th:replace="~{fragments/layout :: header-css}"></div>
+    <div th:replace="~{layout :: header-css}"></div>
     <title>Disponibilidad - CundiPark</title>
 </head>
 <body>
 
-    <div th:replace="~{fragments/layout :: navbar(user=${user})}"></div>
+    <div th:replace="~{layout :: navbar(user=${user})}"></div>
 
     <div class="container mt-4">
         
         <!-- Botones de Módulos (Navegación) -->
-        <div th:replace="~{fragments/layout :: module-buttons(active_module='disponibilidad')}"></div>
+        <div th:replace="~{layout :: module-buttons(active_module='disponibilidad')}"></div>
 
         <div class="row g-4">
             <div class="col-12">
@@ -52,6 +52,6 @@
         </div>
     </div>
 
-    <div th:replace="~{fragments/layout :: footer-scripts}"></div>
+    <div th:replace="~{layout :: footer-scripts}"></div>
 </body>
 </html>

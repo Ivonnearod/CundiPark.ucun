@@ -1,0 +1,130 @@
+/* CUNDIPARK MODERN UI THEME */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+:root {
+    --primary: #2c3e50;
+    --accent: #3498db;
+    --success: #27ae60;
+    --warning: #f1c40f;
+    --danger: #e74c3c;
+    --glass: rgba(255, 255, 255, 0.9);
+}
+
+body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #dbe9f4 100%) fixed;
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    color: var(--primary);
+}
+
+.fw-bold, h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+}
+
+/* Logo Styles */
+.login-logo {
+    max-height: 100px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 1rem;
+}
+
+.navbar-logo {
+    height: 40px;
+    width: auto;
+    margin-right: 12px;
+}
+
+/* Glassmorphism for Login & Register Cards */
+.auth-card {
+    background: var(--glass);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    transition: transform 0.3s ease;
+}
+
+.auth-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Dashboard Cards */
+.stat-card {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 20px;
+    border: none;
+    border-left: 5px solid var(--accent);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* Occupancy Indicator Colors */
+.progress-low { color: var(--success); font-weight: bold; }
+.progress-medium { color: var(--warning); font-weight: bold; }
+.progress-high { color: var(--danger); font-weight: bold; }
+
+/* Modern Inputs Upgrade */
+.form-control {
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.2);
+    border-color: var(--accent);
+    transform: scale(1.01);
+}
+
+/* Modern & "Chevres" Buttons Upgrade */
+.btn {
+    border-radius: 12px;
+    padding: 12px 28px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.85rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent) 0%, #2980b9 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--danger) 0%, #c0392b 100%) !important;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success) 0%, #1e8449 100%) !important;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+}
+
+.btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2);
+    filter: brightness(1.1);
+}
+
+.btn:active {
+    transform: translateY(-1px) scale(0.96);
+}
+
+/* Navbar Glass effect */
+.btn-outline-light {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}

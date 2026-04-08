@@ -78,11 +78,6 @@ public class RestUserController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<UserDTO>> registerUser(@Valid @RequestBody UserDTO userDTO) {
-        // Validar email
-        if (!ValidadorEmail.esValido(userDTO.getEmail())) {
-            throw new IllegalArgumentException("Email inválido");
-        }
-
         // Validar contraseña
         java.util.List<String> erroresContrasena = ValidadorContrasena.obtenerErrores(userDTO.getPassword());
         if (!erroresContrasena.isEmpty()) {
@@ -123,9 +118,6 @@ public class RestUserController {
 
         // Validar nuevo email si cambió
         if (!existente.getEmail().equals(userDTO.getEmail())) {
-            if (!ValidadorEmail.esValido(userDTO.getEmail())) {
-                throw new IllegalArgumentException("Email inválido");
-            }
             User emailExistente = userService.getUserByEmail(userDTO.getEmail());
             if (emailExistente != null) {
                 throw new DuplicateResourceException("Usuario", "email", userDTO.getEmail());
@@ -167,11 +159,6 @@ public class RestUserController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
-        // validar email
-        if (!ValidadorEmail.esValido(loginRequest.getEmail())) {
-            throw new IllegalArgumentException("Email inválido");
-        }
-
         boolean authenticated = userService.authenticateUser(loginRequest.getEmail(), loginRequest.getPassword());
         if (!authenticated) {
             throw new UnauthorizedException("Credenciales inválidas");

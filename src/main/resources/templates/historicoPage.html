@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <div th:replace="~{fragments/layout :: header-css}"></div>
+    <div th:replace="~{layout :: header-css}"></div>
     <title>Historial - CundiPark</title>
 </head>
 <body>
 
-    <div th:replace="~{fragments/layout :: navbar(user=${user})}"></div>
+    <div th:replace="~{layout :: navbar(user=${user})}"></div>
 
     <div class="container mt-4">
         
         <!-- Botones de Módulos (Navegación) -->
-        <div th:replace="~{fragments/layout :: module-buttons(active_module='historial')}"></div>
+        <div th:replace="~{layout :: module-buttons(active_module='historial')}"></div>
 
         <div class="card shadow-sm">
             <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-history me-2"></i>Historial de Registros</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-history me-2"></i>Historial de Registros</h5>
+                    <span class="badge bg-light text-dark border p-2" th:text="${'Viendo registros de: ' + targetUser.nombre}">Nombre</span>
+                </div>
             </div>
             <div class="card-body">
                 
@@ -88,6 +91,6 @@
         </div>
     </div>
 
-    <div th:replace="~{fragments/layout :: footer-scripts}"></div>
+    <div th:replace="~{layout :: footer-scripts}"></div>
 </body>
 </html>

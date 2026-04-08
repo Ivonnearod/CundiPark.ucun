@@ -57,15 +57,20 @@ public class UserService implements UserDetailsService {
     }
 
     public boolean authenticateUser(String email, String password) {
-        return userRepository.findByEmail(email)
+        if (email == null) return false;
+        return userRepository.findByEmail(email.toLowerCase().trim())
                 .map(user -> passwordEncoder.matches(password, user.getPassword()))
                 .orElse(false);
     }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario o contraseña inválidos"));
+        if (email == null || email.trim().isEmpty()) {
+            throw new UsernameNotFoundException("El email no puede estar vacío");
+        }
+        String normalizedEmail = email.toLowerCase().trim();
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + normalizedEmail));
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())

@@ -1,38 +1,41 @@
 package com.grupo0.cundipark.models;
 
-import java.time.LocalDateTime;
-
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "registros")
 @Getter
 @Setter
-@Entity
-@NoArgsConstructor
-@Table(name = "registros")
 public class Registro extends BaseModel {
 
-    @Column(nullable = false, length = 6)
-    private String placa;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehiculo_id", nullable = false)
+    private Vehiculo vehiculo;
 
-    @Column(nullable = false)
-    private Boolean activo = true;
-
-    @Column
-    private LocalDateTime fechaSalida;
-
-    @ManyToOne
-    @JoinColumn(name = "users_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "bloques_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bloque_id", nullable = false)
     private Bloque bloque;
-}
+    
+    @NotNull(message = "El estado activo/inactivo es obligatorio")
+    private Boolean activo;
 
+    private LocalDateTime fechaEntrada;
+
+    private LocalDateTime fechaSalida;
+
+    // Campo para auditoría y notas del sistema
+    private String observaciones;
+}

@@ -1,6 +1,6 @@
 #  CUNDIPARK - Backend Enterprise Grade
 
-Solución profesional de gestión de estacionamiento con arquitectura limpia, separación de responsabilidades y prácticas de desarrollo enterprise.
+Ecosistema digital multiplataforma (Web & Mobile) para la gestión de estacionamiento con arquitectura limpia y servicios RESTful.
 
 ##  Tabla de Contenidos
 - [Estructura del Proyecto](#estructura-del-proyecto)
@@ -285,7 +285,7 @@ GET  /home/stats      → Estadísticas
 
 ---
 
-##  API Endpoints (Futuro REST API)
+##  API Endpoints (Soporte para Web y App Móvil Android/iOS)
 
 ### Usuarios
 ```

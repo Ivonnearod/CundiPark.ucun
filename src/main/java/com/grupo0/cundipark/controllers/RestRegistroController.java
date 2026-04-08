@@ -25,10 +25,12 @@ import com.grupo0.cundipark.dtos.RegistroDTO;
 import com.grupo0.cundipark.exceptions.ResourceNotFoundException;
 import com.grupo0.cundipark.models.Bloque;
 import com.grupo0.cundipark.models.Registro;
+import com.grupo0.cundipark.models.Vehiculo;
 import com.grupo0.cundipark.models.User;
 import com.grupo0.cundipark.services.BloqueService;
 import com.grupo0.cundipark.services.RegistroService;
 import com.grupo0.cundipark.services.UserService;
+import com.grupo0.cundipark.services.VehiculoService;
 import com.grupo0.cundipark.utils.MapperUtil;
 import com.grupo0.cundipark.validators.ValidadorPlaca;
 
@@ -46,6 +48,9 @@ public class RestRegistroController {
 
     @Autowired
     private BloqueService bloqueService;
+
+    @Autowired
+    private VehiculoService vehiculoService;
 
     /**
      * GET /api/registros - Obtener todos los registros
@@ -129,10 +134,10 @@ public class RestRegistroController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<RegistroDTO>> createRegistro(@Valid @RequestBody RegistroDTO registroDTO) {
-        // Validar placa
-        if (!ValidadorPlaca.esValida(registroDTO.getPlaca())) {
-            throw new IllegalArgumentException("Número de placa inválido. Formato: ABC-1234");
-        }
+        // La validación de la placa y vigencia de documentos se hará en el VehiculoService
+        Vehiculo vehiculo = vehiculoService.getVehiculoById(registroDTO.getVehiculoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehiculo", registroDTO.getVehiculoId()));
+
 
         // La lógica de negocio (como buscar entidades) debería estar idealmente en la capa de servicio para asegurar atomicidad.
         // Sin embargo, hacer la validación aquí es una mejora crucial sobre el código anterior.
@@ -159,15 +164,13 @@ public class RestRegistroController {
             throw new IllegalArgumentException("El ID del bloque es requerido");
         }
 
-        Registro registro = new Registro();
-        // Guardamos la placa sin guiones para respetar el límite de 6 caracteres de la BD
-        registro.setPlaca(ValidadorPlaca.formatear(registroDTO.getPlaca()).replace("-", ""));
-        registro.setActivo(registroDTO.isActivo());
-        registro.setUser(user);
-        registro.setBloque(bloque);
-        // El campo 'estado' podría tener lógica de negocio asociada, que debería manejarse en el servicio.
+        // Usamos el servicio transaccional para asegurar atomicidad
+        Registro registroGuardado = registroService.registrarEntrada(
+            vehiculo, // Pasamos el objeto vehículo completo
+            user,
+            bloque
+        );
 
-        Registro registroGuardado = registroService.saveRegistro(registro);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.success(MapperUtil.toRegistroDTO(registroGuardado), "Registro creado exitosamente")
         );
@@ -183,45 +186,14 @@ public class RestRegistroController {
     public ResponseEntity<ApiResponse<RegistroDTO>> updateRegistro(
             @PathVariable Long id,
             @Valid @RequestBody RegistroDTO registroDTO) {
-        Registro existente = registroService.getRegistroById(id);
-        if (existente == null) {
-            throw new ResourceNotFoundException("Registro", id);
-        }
-
-        // Validar y formatear placa si cambió
-        if (registroDTO.getPlaca() != null && !existente.getPlaca().equals(registroDTO.getPlaca())) {
-            if (!ValidadorPlaca.esValida(registroDTO.getPlaca())) {
-                throw new IllegalArgumentException("Número de placa inválido. Formato: ABC-1234");
-            }
-            // Guardamos la placa sin guiones para respetar el límite de 6 caracteres de la BD
-            existente.setPlaca(ValidadorPlaca.formatear(registroDTO.getPlaca()).replace("-", ""));
-        }
-
-        if (registroDTO.isActivo() != existente.getActivo()) {
-            existente.setActivo(registroDTO.isActivo());
-        }
-        if (registroDTO.getFechaSalida() != null) {
-            existente.setFechaSalida(registroDTO.getFechaSalida());
-        }
+        // Delegamos toda la lógica pesada al servicio transaccional
+        Registro registroActualizado = registroService.actualizarRegistro(
+                id, 
+                registroDTO.getVehiculoPlaca(), // La placa aquí es solo para referencia, no para actualizar el registro directamente
+                registroDTO.getActivo(), 
+                registroDTO.getBloqueId()
+        );
         
-        // Actualiza correctamente las asociaciones solo si el ID ha cambiado
-        if (registroDTO.getUserId() != null && (existente.getUser() == null || !registroDTO.getUserId().equals(existente.getUser().getId()))) {
-            User user = userService.getUserById(registroDTO.getUserId());
-            if (user == null) {
-                throw new ResourceNotFoundException("Usuario", registroDTO.getUserId());
-            }
-            existente.setUser(user);
-        }
-
-        if (registroDTO.getBloqueId() != null && (existente.getBloque() == null || !registroDTO.getBloqueId().equals(existente.getBloque().getId()))) {
-            Bloque bloque = bloqueService.getBloqueById(registroDTO.getBloqueId());
-            if (bloque == null) {
-                throw new ResourceNotFoundException("Bloque", registroDTO.getBloqueId());
-            }
-            existente.setBloque(bloque);
-        }
-
-        Registro registroActualizado = registroService.saveRegistro(existente);
         return ResponseEntity.ok(
                 ApiResponse.success(MapperUtil.toRegistroDTO(registroActualizado), "Registro actualizado")
         );
@@ -242,10 +214,9 @@ public class RestRegistroController {
             throw new IllegalArgumentException("El vehículo ya ha salido");
         }
 
-        existente.setActivo(false);
-        existente.setFechaSalida(LocalDateTime.now());
+        // Usamos el servicio transaccional
+        Registro registroActualizado = registroService.registrarSalida(id);
 
-        Registro registroActualizado = registroService.saveRegistro(existente);
         return ResponseEntity.ok(
                 ApiResponse.success(MapperUtil.toRegistroDTO(registroActualizado), "Salida registrada exitosamente")
         );
@@ -258,11 +229,8 @@ public class RestRegistroController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteRegistro(@PathVariable Long id) {
-        Registro registro = registroService.getRegistroById(id);
-        if (registro == null) {
-            throw new ResourceNotFoundException("Registro", id);
-        }
-        registroService.deleteRegistro(id);
+        // Usamos el nuevo método transaccional del servicio
+        registroService.eliminarRegistro(id);
         return ResponseEntity.ok(
                 ApiResponse.success(null, "Registro eliminado exitosamente")
         );
