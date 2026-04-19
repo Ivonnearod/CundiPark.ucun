@@ -44,10 +44,12 @@ public class BackupAdminController {
             File zipFile = path.resolve(zipName).toFile();
             
             try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
-                // 1. DB
-                String dbName = dbUrl.split("\\?")[0].substring(dbUrl.split("\\?")[0].lastIndexOf("/") + 1);
+                // 1. DB (Cambiado a pg_dump para PostgreSQL en Render)
                 File sql = new File("temp_admin.sql");
-                Process p = new ProcessBuilder("mysqldump", "-u" + dbUser, "-p" + dbPass, dbName, "--result-file=" + sql.getAbsolutePath()).start();
+                ProcessBuilder pb = new ProcessBuilder("pg_dump", "-U", dbUser, "-d", "cundipark", "-f", sql.getAbsolutePath());
+                pb.environment().put("PGPASSWORD", dbPass);
+                Process p = pb.start();
+                
                 if (p.waitFor() == 0) {
                     addFileToZip(sql, "database.sql", zos);
                     sql.delete();
