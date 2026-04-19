@@ -42,25 +42,29 @@ public class BackupAdminController {
         try {
             if (!Files.exists(path)) Files.createDirectories(path);
             File zipFile = path.resolve(zipName).toFile();
+            File sql = new File("temp_admin_" + ts + ".sql");
             
             try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
                 // 1. DB (Cambiado a pg_dump para PostgreSQL en Render)
-                File sql = new File("temp_admin.sql");
                 ProcessBuilder pb = new ProcessBuilder("pg_dump", "-U", dbUser, "-d", "cundipark", "-f", sql.getAbsolutePath());
                 pb.environment().put("PGPASSWORD", dbPass);
                 Process p = pb.start();
                 
                 if (p.waitFor() == 0) {
                     addFileToZip(sql, "database.sql", zos);
-                    sql.delete();
                 }
-                // 2. Config
-                File cfg = new File("src/main/resources/application.properties");
-                if (cfg.exists()) addFileToZip(cfg, "application.properties", zos);
+                
+                // 2. Logs (En Docker la carpeta src no existe, respaldamos los logs del sistema)
+                File logsDir = new File("logs");
+                if (logsDir.exists()) addDirToZip(logsDir, "logs", zos);
             }
             return ResponseEntity.ok("Backup Admin creado: " + zipName);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        } finally {
+            // Limpieza de archivos temporales después del proceso
+            File temp = new File("temp_admin_" + ts + ".sql");
+            if (temp.exists()) temp.delete();
         }
     }
 
@@ -68,5 +72,14 @@ public class BackupAdminController {
         zos.putNextEntry(new ZipEntry(name));
         Files.copy(file.toPath(), zos);
         zos.closeEntry();
+    }
+
+    private void addDirToZip(File dir, String base, ZipOutputStream zos) throws IOException {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        for (File f : files) {
+            if (f.isDirectory()) addDirToZip(f, base + "/" + f.getName(), zos);
+            else addFileToZip(f, base + "/" + f.getName(), zos);
+        }
     }
 }
