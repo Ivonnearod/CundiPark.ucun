@@ -51,16 +51,15 @@ public class BackupSuperAdminController {
 
             try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
                 // 1. DB
-                String dbName = extractDbName(dbUrl);
-                ProcessBuilder pb = new ProcessBuilder("mysqldump", "-u" + dbUser, "-p" + dbPass, dbName, "--result-file=" + tempSql.getAbsolutePath());
+                ProcessBuilder pb = new ProcessBuilder("pg_dump", "-U", dbUser, "-d", "cundipark", "-f", tempSql.getAbsolutePath());
+                pb.environment().put("PGPASSWORD", dbPass);
                 Process p = pb.start();
                 
                 if (p.waitFor() == 0 && tempSql.exists()) {
                     addFileToZip(tempSql, "database_full.sql", zos);
                 }
                 
-                // 2. Copia completa de carpetas críticas
-                addDirToZip(new File("src/main/resources"), "configuration", zos);
+                // 2. Copia de carpetas críticas (Nota: src no existe en el contenedor de ejecución)
                 addDirToZip(new File("logs"), "system_logs", zos);
                 addDirToZip(new File("uploads"), "user_uploads", zos);
             }
