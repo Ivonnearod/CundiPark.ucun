@@ -8,8 +8,11 @@ import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Sort;
+import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,7 @@ import com.grupo0.cundipark.models.User;
 import com.grupo0.cundipark.models.Bloque;
 import com.grupo0.cundipark.models.Vehiculo;
 import com.grupo0.cundipark.repositories.RegistroRepository;
+import com.grupo0.cundipark.validators.ValidadorPlaca;
 import com.grupo0.cundipark.repositories.BloqueRepository;
 import com.grupo0.cundipark.exceptions.ResourceNotFoundException;
 
@@ -34,7 +38,13 @@ public class RegistroService {
     private BloqueRepository bloqueRepository;
 
     @Autowired
-    private VehiculoService vehiculoService; // Necesitarás un VehiculoService
+    private VehiculoService vehiculoService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private BloqueService bloqueService;
 
     public List<Registro> getAllRegistros() {
         return registroRepository.findAll();
@@ -68,11 +78,61 @@ public class RegistroService {
         registroRepository.delete(registro);
     }
 
-    // NOTA: Este método fue optimizado para no cargar todos los registros en memoria.
-    // Ahora delega el filtrado directamente a la base de datos.
-    // Asegúrate de agregar el método 'findByActivo(boolean activo)' a tu interface RegistroRepository.
     public List<Registro> findByActivoTrue() {
         return registroRepository.findByActivo(true);
+    }
+
+    /**
+     * Orquesta el proceso completo de entrada: gestiona el vehículo y valida los requisitos.
+     * Esto centraliza la lógica que antes estaba repetida en los controladores.
+     */
+    public Registro procesarEntradaCompleta(String placa, String marca, String modelo, String color, 
+                                          LocalDate soat, LocalDate tecno, Long userId, Long bloqueId) {
+        User user = userService.getUserById(userId);
+        if (user == null) throw new ResourceNotFoundException("Usuario", userId);
+
+        // La placa ya fue validada y formateada en el controlador (ABC-123)
+        // Solo hacer una validación rápida
+        if (placa == null || placa.trim().isEmpty()) {
+            throw new IllegalArgumentException("La placa no puede estar vacía.");
+        }
+        
+        // ASIGNAR BLOQUE POR DEFECTO SI NO VIENE
+        if (bloqueId == null) {
+            List<Bloque> activos = bloqueService.getBloquesActivos();
+            if (activos.isEmpty()) {
+                throw new IllegalStateException("No hay bloques disponibles en el sistema.");
+            }
+            bloqueId = activos.get(0).getId();
+            System.out.println("[DEBUG] BloqueId nulo, asignando por defecto: " + bloqueId);
+        }
+
+        // Usamos el formateador oficial (AAA-123)
+        String placaFormateada = ValidadorPlaca.formatear(placa);
+
+        Bloque bloque = bloqueService.getBloqueById(bloqueId);
+        if (bloque == null) throw new ResourceNotFoundException("Bloque", bloqueId);
+
+        // 1. Buscar o Crear Vehículo
+        Vehiculo vehiculo = vehiculoService.findByPlaca(placaFormateada).orElse(null);
+        if (vehiculo == null) {
+            System.out.println("[DEBUG] Creando nuevo vehículo con placa: " + placaFormateada);
+            vehiculo = new Vehiculo();
+            vehiculo.setPlaca(placaFormateada);
+            vehiculo.setUser(user);
+        }
+        
+        // 2. Actualizar datos técnicos (aseguramos que siempre estén al día)
+        vehiculo.setMarca(marca);
+        vehiculo.setModelo(modelo);
+        vehiculo.setColor(color);
+        vehiculo.setSoatVencimiento(soat);
+        vehiculo.setTecnomecanicaVencimiento(tecno);
+        
+        vehiculo = vehiculoService.saveVehiculo(vehiculo);
+
+        // 3. Delegar al registro de entrada (donde se valida SOAT y Disponibilidad)
+        return registrarEntrada(vehiculo, user, bloque);
     }
 
     /**
@@ -80,30 +140,44 @@ public class RegistroService {
      * Crea el registro y actualiza la disponibilidad del bloque en un solo paso.
      */
     public Registro registrarEntrada(Vehiculo vehiculo, User user, Bloque bloque) {
-        // Validación de integridad: No permitir que el mismo vehículo entre dos veces si ya está activo
-
-        // Recargar el bloque desde la DB para asegurar que el contador de cupos es el real en este instante
         Bloque bloqueActualizado = bloqueRepository.findById(bloque.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bloque", bloque.getId()));
 
+        // Validar cupos disponibles
         if (bloqueActualizado.getDisponibles() <= 0) {
+            System.out.println("[ERROR REGISTRO] Bloque sin cupos: " + bloqueActualizado.getNombre());
             throw new IllegalStateException("No hay cupos disponibles en este bloque.");
         }
         
-        if (registroRepository.existsByVehiculoPlacaAndActivo(vehiculo.getPlaca(), true)) {
+        // Validar que el vehículo no esté ya adentro
+        if (registroRepository.countByVehiculo_PlacaAndActivo(vehiculo.getPlaca(), true) > 0) {
+            System.out.println("[ERROR REGISTRO] Vehículo ya está dentro: " + vehiculo.getPlaca());
             throw new IllegalStateException("El vehículo con placa " + vehiculo.getPlaca() + " ya se encuentra dentro del parqueadero.");
         }
 
         // Validar vigencia de documentos del vehículo
-        if (Boolean.FALSE.equals(vehiculo.isSoatVigente()) || Boolean.FALSE.equals(vehiculo.isTecnomecanicaVigente())) {
+        LocalDate hoy = LocalDate.now();
+        boolean soatVigente = vehiculo.getSoatVencimiento() != null && !vehiculo.getSoatVencimiento().isBefore(hoy);
+        boolean tecnoVigente = vehiculo.getTecnomecanicaVencimiento() != null && !vehiculo.getTecnomecanicaVencimiento().isBefore(hoy);
+
+        // Log preventivo para depuración rápida en consola
+        if (!soatVigente) System.out.println("[ALERTA] SOAT Vencido o Nulo para: " + vehiculo.getPlaca());
+        if (!tecnoVigente) System.out.println("[ALERTA] Tecnomecánica Vencida o Nula para: " + vehiculo.getPlaca());
+
+        if (!soatVigente || !tecnoVigente) {
+            System.out.println("[ERROR REGISTRO] Documentos vencidos para placa: " + vehiculo.getPlaca());
             throw new IllegalStateException("No se permite el ingreso: El SOAT y la Revisión Tecnomecánica del vehículo deben estar vigentes.");
         }
 
         Registro registro = new Registro();
         registro.setVehiculo(vehiculo);
+
+        registro.setPlaca(vehiculo.getPlaca()); // Asignamos la placa para cumplir con la restricción de la DB
         registro.setUser(user);
         registro.setBloque(bloqueActualizado);
         registro.setActivo(true);
+        registro.setSoatVigente(soatVigente);
+        registro.setTecnomecanicaVigente(tecnoVigente);
         registro.setFechaEntrada(LocalDateTime.now());
 
         // Capa de Asociación: Notas de auditoría
@@ -245,7 +319,7 @@ public class RegistroService {
 
     public Page<Registro> buscarConFiltros(Long userId, LocalDateTime desde, LocalDateTime hasta,
                                            Long bloqueId, String placa, Boolean activo, Pageable pageable) {
-        return registroRepository.findAll((Specification<Registro>) (root, query, criteriaBuilder) -> {
+        return registroRepository.findAll((root, query, criteriaBuilder) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
             if (userId != null) {
@@ -284,10 +358,11 @@ public class RegistroService {
      * Calcula la ocupación basándose en el conteo real de registros activos,
      * lo que garantiza que el gráfico siempre sea veraz aunque los contadores de bloque fallen.
      */
+    @Transactional(readOnly = true)
     public Map<String, Object> obtenerEstadisticasOcupacionReal() {
         List<Bloque> bloques = bloqueRepository.findAll();
         int capacidadTotal = bloques.stream().mapToInt(Bloque::getCapacidad).sum();
-        long ocupados = registroRepository.findByActivo(true).size();
+        long ocupados = countActiveRegistros(); // Usar el método optimizado
         int disponibles = Math.max(0, capacidadTotal - (int) ocupados);
 
         Map<String, Object> stats = new HashMap<>();
@@ -295,5 +370,46 @@ public class RegistroService {
         stats.put("disponibles", disponibles);
         stats.put("total", capacidadTotal);
         return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public long countActiveRegistros() {
+        return registroRepository.countByActivo(true);
+    }
+
+    @Transactional(readOnly = true)
+    public long countEntradasLast24Hours(LocalDateTime oneDayAgo) {
+        return registroRepository.countByCreatedAtAfter(oneDayAgo);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Registro> findTopNByCreatedAtDesc(int limit) {
+        // Usar PageRequest para que la base de datos limite los resultados (SELECT ... LIMIT X)
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return registroRepository.findAll(pageable).getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public double calcularPromedioEstadiaMinutos() {
+        // En un entorno real, usaríamos una query JPQL: "SELECT AVG(TIMESTAMPDIFF(MINUTE, r.fechaEntrada, r.fechaSalida)) FROM Registro r WHERE r.activo = false"
+        // Por ahora, limitamos el cálculo a los últimos 500 registros para evitar congelamiento
+        List<Registro> recientes = findTopNByCreatedAtDesc(500);
+        if (recientes.isEmpty()) return 0.0;
+
+        return recientes.stream()
+                .filter(r -> r != null && Boolean.FALSE.equals(r.getActivo()) 
+                        && r.getFechaEntrada() != null && r.getFechaSalida() != null)
+                .mapToLong(r -> java.time.Duration.between(r.getFechaEntrada(), r.getFechaSalida()).toMinutes())
+                .average()
+                .orElse(0.0);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Integer, Long> getEntradasDistribucionHora(LocalDateTime since) {
+        // CORRECCIÓN: Filtrar directamente desde los últimos 1000 registros
+        // En producción se debe usar: registroRepository.countByHourSince(since)
+        return findTopNByCreatedAtDesc(1000).stream()
+                .filter(r -> r.getCreatedAt() != null && r.getCreatedAt().isAfter(since))
+                .collect(java.util.stream.Collectors.groupingBy(r -> r.getCreatedAt().getHour(), java.util.stream.Collectors.counting()));
     }
 }

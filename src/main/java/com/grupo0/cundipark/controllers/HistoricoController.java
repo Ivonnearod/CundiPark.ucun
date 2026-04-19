@@ -5,6 +5,7 @@ import com.grupo0.cundipark.models.User;
 import com.grupo0.cundipark.models.RolUsuario;
 import com.grupo0.cundipark.services.RegistroService;
 import com.grupo0.cundipark.services.UserService;
+import com.grupo0.cundipark.validators.ValidadorPlaca;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -53,7 +54,7 @@ public class HistoricoController {
         if (placa == null || placa.trim().isEmpty()) {
             return null;
         }
-        return placa.trim().replace("-", "").toUpperCase();
+        return ValidadorPlaca.formatear(placa);
     }
 
     @GetMapping("/historico")

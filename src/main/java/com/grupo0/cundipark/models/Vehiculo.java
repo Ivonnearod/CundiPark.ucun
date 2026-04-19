@@ -53,10 +53,10 @@ public class Vehiculo extends BaseModel {
 
     // Métodos de conveniencia para verificar vigencia
     public Boolean isSoatVigente() {
-        return soatVencimiento != null && soatVencimiento.isAfter(LocalDate.now());
+        return soatVencimiento != null && !soatVencimiento.isBefore(LocalDate.now());
     }
 
     public Boolean isTecnomecanicaVigente() {
-        return tecnomecanicaVencimiento != null && tecnomecanicaVencimiento.isAfter(LocalDate.now());
+        return tecnomecanicaVencimiento != null && !tecnomecanicaVencimiento.isBefore(LocalDate.now());
     }
 }

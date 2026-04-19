@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.grupo0.cundipark.dtos.ApiResponse;
 import com.grupo0.cundipark.dtos.RegistroDTO;
+import com.grupo0.cundipark.validators.ValidadorPlaca;
 import com.grupo0.cundipark.services.RegistroService;
 import com.grupo0.cundipark.utils.MapperUtil;
 
@@ -46,7 +47,11 @@ public class RestHistoricoController {
     ) {
         // Normalizamos la placa para la búsqueda en la base de datos (sin guion y en mayúsculas)
         if (placa != null) {
-            placa = placa.trim().replace("-", "").toUpperCase();
+            try {
+                placa = ValidadorPlaca.formatear(placa);
+            } catch (Exception e) {
+                placa = placa.trim().toUpperCase();
+            }
         }
 
         Pageable pageable = PageRequest.of(page, size);

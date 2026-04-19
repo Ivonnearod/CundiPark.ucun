@@ -40,6 +40,8 @@ public class MapperUtil {
             dto.setVehiculoMarca(registro.getVehiculo().getMarca());
             dto.setVehiculoModelo(registro.getVehiculo().getModelo()); // Corregido de getModel() a getModelo()
             dto.setVehiculoColor(registro.getVehiculo().getColor());
+            dto.setSoatVencimiento(registro.getVehiculo().getSoatVencimiento());
+            dto.setTecnomecanicaVencimiento(registro.getVehiculo().getTecnomecanicaVencimiento());
         }
 
         return dto;

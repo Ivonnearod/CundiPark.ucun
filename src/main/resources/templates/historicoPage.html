@@ -55,7 +55,7 @@
                         </thead>
                         <tbody>
                             <tr th:each="registro : ${paginaRegistros.content}">
-                                <td class="fw-bold" th:text="${registro.placa}">AAA-123</td>
+                                <td class="fw-bold" th:text="${registro.vehiculo.placa}">AAA-123</td>
                                 <td th:text="${registro.bloque?.nombre}">Bloque A</td>
                                 <td th:text="${#temporals.format(registro.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
                                 <td th:text="${registro.fechaSalida != null ? #temporals.format(registro.fechaSalida, 'dd/MM/yyyy HH:mm') : '-'}">-</td>

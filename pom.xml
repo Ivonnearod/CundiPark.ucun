@@ -102,6 +102,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- PostgreSQL Driver (Necesario para la base de datos nativa de Render) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- MySQL Connector -->
         <dependency>
             <groupId>com.mysql</groupId>

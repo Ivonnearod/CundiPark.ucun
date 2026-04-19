@@ -319,11 +319,14 @@ Content-Type: application/json
 **Request:**
 ```json
 {
-  "placa": "ABC-1234",
-  "activo": true,
-  "estado": "ACTIVO",
+  "vehiculoPlaca": "ABC-1234",
   "userId": 1,
-  "bloqueId": 1
+  "bloqueId": 1,
+  "vehiculoMarca": "Toyota",
+  "vehiculoModelo": "2023",
+  "vehiculoColor": "Gris",
+  "soatVencimiento": "2026-12-31",
+  "tecnomecanicaVencimiento": "2026-12-31"
 }
 ```
 **Validaciones:**
@@ -541,11 +544,13 @@ curl -X POST http://localhost:8080/api/users/login \
 curl -X POST http://localhost:8080/api/registros \
   -H "Content-Type: application/json" \
   -d '{
-    "placa": "ABC-1234",
-    "activo": true,
-    "estado": "ACTIVO",
+    "vehiculoPlaca": "ABC-123",
     "userId": 1,
-    "bloqueId": 1
+    "bloqueId": 1,
+    "vehiculoMarca": "Mazda",
+    "vehiculoModelo": "2024",
+    "soatVencimiento": "2026-01-01",
+    "tecnomecanicaVencimiento": "2026-01-01"
   }'
 ```
 
@@ -584,4 +589,3 @@ Para probar estos endpoints usando Postman:
 - [ ] Rate limiting
 - [ ] Swagger/OpenAPI
 - [ ] WebSocket para actualizaciones en tiempo real
-

@@ -134,41 +134,19 @@ public class RestRegistroController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<RegistroDTO>> createRegistro(@Valid @RequestBody RegistroDTO registroDTO) {
-        // La validación de la placa y vigencia de documentos se hará en el VehiculoService
-        Vehiculo vehiculo = vehiculoService.getVehiculoById(registroDTO.getVehiculoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehiculo", registroDTO.getVehiculoId()));
-
-
-        // La lógica de negocio (como buscar entidades) debería estar idealmente en la capa de servicio para asegurar atomicidad.
-        // Sin embargo, hacer la validación aquí es una mejora crucial sobre el código anterior.
-        User user = null;
-        if (registroDTO.getUserId() != null) {
-            user = userService.getUserById(registroDTO.getUserId());
-            if (user == null) {
-                throw new ResourceNotFoundException("Usuario", registroDTO.getUserId());
-            }
-        } else {
-            throw new IllegalArgumentException("El ID del usuario es requerido");
-        }
-
-        Bloque bloque = null;
-        if (registroDTO.getBloqueId() != null) {
-            bloque = bloqueService.getBloqueById(registroDTO.getBloqueId());
-            if (bloque == null) {
-                throw new ResourceNotFoundException("Bloque", registroDTO.getBloqueId());
-            }
-            if (bloque.getDisponibles() <= 0) {
-                throw new IllegalArgumentException("El bloque seleccionado no tiene cupos disponibles");
-            }
-        } else {
-            throw new IllegalArgumentException("El ID del bloque es requerido");
-        }
-
-        // Usamos el servicio transaccional para asegurar atomicidad
-        Registro registroGuardado = registroService.registrarEntrada(
-            vehiculo, // Pasamos el objeto vehículo completo
-            user,
-            bloque
+        // Buscar o crear vehículo por placa y actualizar documentos
+        String placaNormalizada = ValidadorPlaca.formatear(registroDTO.getVehiculoPlaca());
+        
+        // Delegamos la lógica compleja al servicio para mantener el controlador limpio
+        Registro registroGuardado = registroService.procesarEntradaCompleta(
+            placaNormalizada,
+            registroDTO.getVehiculoMarca(),
+            registroDTO.getVehiculoModelo(),
+            registroDTO.getVehiculoColor(),
+            registroDTO.getSoatVencimiento(),
+            registroDTO.getTecnomecanicaVencimiento(),
+            registroDTO.getUserId(),
+            registroDTO.getBloqueId()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(

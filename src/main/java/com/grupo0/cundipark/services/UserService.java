@@ -1,21 +1,22 @@
 package com.grupo0.cundipark.services;
 
-import java.util.List;
-
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import com.grupo0.cundipark.models.User;
+import com.grupo0.cundipark.models.RolUsuario;
+import com.grupo0.cundipark.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.grupo0.cundipark.exceptions.ResourceNotFoundException;
-import com.grupo0.cundipark.models.User;
-import com.grupo0.cundipark.models.RolUsuario;
-import com.grupo0.cundipark.repositories.UserRepository;
+import java.util.Collections;
+import java.util.List;
 
 @Service
+@Transactional
 public class UserService implements UserDetailsService {
 
     @Autowired
@@ -24,28 +25,46 @@ public class UserService implements UserDetailsService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = getUserByEmail(email);
+        if (user == null) {
+            throw new UsernameNotFoundException("Usuario no encontrado con email: " + email);
+        }
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRol().name()))
+        );
     }
 
-    public User getUserById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User", id));
+    public boolean authenticateUser(String email, String password) {
+        User user = getUserByEmail(email);
+        if (user != null) {
+            return passwordEncoder.matches(password, user.getPassword());
+        }
+        return false;
     }
 
-    public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email).orElse(null);
+    public List<User> searchUsers(String query) {
+        return userRepository.findByNombreContainingIgnoreCaseOrEmailContainingIgnoreCaseOrTelefonoContainingIgnoreCaseOrProgramaContainingIgnoreCaseOrTipoVinculacionContainingIgnoreCase(
+                query, query, query, query, query);
     }
 
-    public User saveUser(User user) {
-        return userRepository.save(user);
+    public long countActiveUsers() {
+        return userRepository.countByActivo(true);
+    }
+
+    public long countUsersByRole(RolUsuario rol) {
+        return userRepository.countByRol(rol);
     }
 
     public User updateUser(User user) {
         return userRepository.save(user);
     }
 
-    public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+    public List<User> findUsersByRole(RolUsuario rol) {
+        return userRepository.findByRol(rol);
     }
 
     public User registerUser(User user) {
@@ -53,30 +72,27 @@ public class UserService implements UserDetailsService {
         if (user.getRol() == null) {
             user.setRol(RolUsuario.USER);
         }
+        user.setActivo(true);
         return userRepository.save(user);
     }
 
-    public boolean authenticateUser(String email, String password) {
-        if (email == null) return false;
-        return userRepository.findByEmail(email.toLowerCase().trim())
-                .map(user -> passwordEncoder.matches(password, user.getPassword()))
-                .orElse(false);
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email.toLowerCase().trim()).orElse(null);
     }
 
-    @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        if (email == null || email.trim().isEmpty()) {
-            throw new UsernameNotFoundException("El email no puede estar vacío");
-        }
-        String normalizedEmail = email.toLowerCase().trim();
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + normalizedEmail));
+    public User getUserById(Long id) {
+        return userRepository.findById(id).orElse(null);
+    }
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPassword())
-                .disabled(!user.getActivo())
-                .authorities(new SimpleGrantedAuthority("ROLE_" + user.getRol().name()))
-                .build();
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public void deleteUser(Long id) {
+        userRepository.deleteById(id);
+    }
+
+    public User saveUser(User user) {
+        return userRepository.save(user);
     }
 }

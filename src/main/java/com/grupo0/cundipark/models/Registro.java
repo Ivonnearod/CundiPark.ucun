@@ -2,6 +2,7 @@ package com.grupo0.cundipark.models;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Column;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -29,6 +30,10 @@ public class Registro extends BaseModel {
     @JoinColumn(name = "bloque_id", nullable = false)
     private Bloque bloque;
     
+    @NotNull(message = "La placa es obligatoria")
+    @Column(nullable = false)
+    private String placa;
+
     @NotNull(message = "El estado activo/inactivo es obligatorio")
     private Boolean activo;
 

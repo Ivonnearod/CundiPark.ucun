@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.time.LocalDate;
 
 import java.time.LocalDateTime;
 
@@ -16,9 +17,9 @@ import java.time.LocalDateTime;
 public class RegistroDTO {
 
     private Long id;
-
+    
     @NotBlank(message = "La placa no puede estar vacía")
-    private String vehiculoPlaca; // Ahora se refiere a la placa del vehículo asociado
+    private String vehiculoPlaca; 
 
     @NotNull(message = "El ID de usuario no puede ser nulo")
     private Long userId;
@@ -26,10 +27,9 @@ public class RegistroDTO {
     @NotNull(message = "El ID de bloque no puede ser nulo")
     private Long bloqueId;
     
-    @NotNull(message = "El ID del vehículo no puede ser nulo")
-    private Long vehiculoId; // Nuevo campo para vincular al vehículo
-
     private Boolean activo;
+
+    private Long vehiculoId;
 
     private LocalDateTime fechaEntrada;
     private LocalDateTime fechaSalida;
@@ -45,4 +45,10 @@ public class RegistroDTO {
     private String vehiculoMarca;
     private String vehiculoModelo;
     private String vehiculoColor;
+    
+    @NotNull(message = "La fecha de vencimiento del SOAT es obligatoria")
+    private LocalDate soatVencimiento;
+    
+    @NotNull(message = "La fecha de vencimiento de la tecnomecánica es obligatoria")
+    private LocalDate tecnomecanicaVencimiento;
 }

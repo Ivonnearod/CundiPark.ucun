@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.time.LocalDate;
 import java.util.List;
 
 @Entity
@@ -32,10 +31,6 @@ public class User extends BaseModel {
     @Column(length = 100)
     private String programa;
 
-    private LocalDate soatVencimiento;
-
-    private LocalDate tecnoVencimiento;
-
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private RolUsuario rol;
@@ -52,7 +47,7 @@ public class User extends BaseModel {
     protected void onCreate() {
         super.onCreate();
         if (rol == null) {
-            rol = RolUsuario.USUARIO;
+            rol = RolUsuario.USER;
         }
     }
 

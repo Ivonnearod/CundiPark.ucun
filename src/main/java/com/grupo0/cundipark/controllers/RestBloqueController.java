@@ -71,9 +71,8 @@ public class RestBloqueController {
             throw new IllegalArgumentException("El nombre del bloque es requerido");
         }
 
-        // Validar que no exista un bloque con el mismo nombre
-        List<Bloque> bloques = bloqueService.getAllBloques();
-        if (bloques.stream().anyMatch(b -> b.getNombre().equalsIgnoreCase(bloque.getNombre()))) {
+        // Validar que no exista un bloque con el mismo nombre (optimizado)
+        if (bloqueService.existsByNombreIgnoreCase(bloque.getNombre())) {
             throw new DuplicateResourceException("Bloque", "nombre", bloque.getNombre());
         }
 
@@ -101,10 +100,7 @@ public class RestBloqueController {
                 throw new IllegalArgumentException("El nombre del bloque no puede estar vacío");
             }
 
-            List<Bloque> bloques = bloqueService.getAllBloques();
-            if (bloques.stream()
-                    .filter(b -> !b.getId().equals(id))
-                    .anyMatch(b -> b.getNombre().equalsIgnoreCase(bloque.getNombre()))) {
+            if (bloqueService.existsByNombreIgnoreCaseAndIdNot(bloque.getNombre(), id)) { // Optimizado
                 throw new DuplicateResourceException("Bloque", "nombre", bloque.getNombre());
             }
 

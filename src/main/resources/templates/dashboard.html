@@ -50,7 +50,7 @@
                                 <div class="col-md-4">
                                     <div class="p-3 border rounded bg-light">
                                         <div class="info-label">Placa</div>
-                                        <div class="info-value text-primary" th:text="${vehiculoActual.placa}">ABC-123</div>
+                                        <div class="info-value text-primary" th:text="${vehiculoActual.vehiculo.placa}">ABC-123</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -99,6 +99,26 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Placa del Vehículo</label>
                                 <input type="text" name="placa" class="form-control form-control-lg text-uppercase" placeholder="Ej: AAA-123" required pattern="[a-zA-Z0-9-]+" maxlength="7">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Marca</label>
+                                <input type="text" name="marca" class="form-control form-control-lg text-capitalize" placeholder="Ej: Mazda" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Modelo</label>
+                                <input type="text" name="modelo" class="form-control form-control-lg text-capitalize" placeholder="Ej: CX-5" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Color</label>
+                                <input type="text" name="color" class="form-control form-control-lg text-capitalize" placeholder="Ej: Negro" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">SOAT Vencimiento</label>
+                                <input type="date" name="soatVencimiento" class="form-control form-control-lg" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tecnomecánica Vencimiento</label>
+                                <input type="date" name="tecnomecanicaVencimiento" class="form-control form-control-lg" required>
                             </div>
                             <div class="mb-4">
                                 <label class="form-label fw-bold">Bloque / Zona</label>

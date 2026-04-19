@@ -59,42 +59,32 @@ public class AdminController {
         }
 
         // Obtener datos
-        List<User> users = userService.getAllUsers();
-        List<Registro> registros = registroService.getAllRegistros(); 
+        List<User> users = userService.getAllUsers(); // Podría optimizarse si solo se necesita el conteo
         List<Bloque> bloques = bloqueService.getAllBloques();
 
         // Cálculos para tarjetas
         long totalUsuarios = users.size();
-        long vehiculosActivos = registros.stream().filter(Registro::getActivo).count();
+        long vehiculosActivos = registroService.countActiveRegistros(); // Optimizado
         
         int capacidadTotal = bloques.stream().mapToInt(Bloque::getCapacidad).sum();
         double ocupacionGeneral = capacidadTotal > 0 ? (double) vehiculosActivos / capacidadTotal * 100 : 0;
         
         LocalDateTime oneDayAgo = LocalDateTime.now().minusHours(24);
-        long entradas24h = registros.stream()
-                .filter(r -> r.getCreatedAt().isAfter(oneDayAgo))
-                .count();
+        long entradas24h = registroService.countEntradasLast24Hours(oneDayAgo); // Optimizado
 
-        // Ciencia de Datos: Cálculo del promedio de estadía (en minutos) para registros finalizados
-        double promedioEstadiaMinutos = registros.stream()
-                .filter(r -> !r.getActivo() && r.getFechaEntrada() != null && r.getFechaSalida() != null)
-                .mapToLong(r -> Duration.between(r.getFechaEntrada(), r.getFechaSalida()).toMinutes())
-                .average()
-                .orElse(0.0);
-
-        // Datos para Gráfica (Entradas por hora)
-        Map<Integer, Long> entradasPorHora = registros.stream()
-                .filter(r -> r.getCreatedAt().isAfter(oneDayAgo))
-                .collect(Collectors.groupingBy(r -> r.getCreatedAt().getHour(), Collectors.counting()));
-
-        // Ciencia de Datos: Identificación de la "Hora Pico" en las últimas 24h
-        Integer horaPico = entradasPorHora.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(0);
+        // OPTIMIZACIÓN: Los cálculos pesados ahora se delegan al Service con queries nativas o agregaciones
+        double promedioEstadiaMinutos = registroService.calcularPromedioEstadiaMinutos();
+        
+        // Obtener distribución de entradas por hora (solo de las últimas 24h, no de todo el histórico)
+        Map<Integer, Long> entradasPorHora = registroService.getEntradasDistribucionHora(oneDayAgo);
+        
+        // Identificación de la "Hora Pico" sin procesar miles de objetos en memoria
+        Integer horaPico = entradasPorHora.isEmpty() ? 0 : entradasPorHora.entrySet().stream()
+                .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(0);
 
         // Añadir al modelo
         model.addAttribute("user", user);
+        model.addAttribute("isSuperAdmin", user.getRol() == RolUsuario.SUPERADMIN);
         model.addAttribute("totalUsuarios", totalUsuarios);
         model.addAttribute("vehiculosActivos", vehiculosActivos);
         model.addAttribute("ocupacionGeneral", String.format("%.1f", ocupacionGeneral));
@@ -113,16 +103,12 @@ public class AdminController {
         model.addAttribute("mapaOcupacion", ocupacionPorBloque);
 
         // Últimos registros (tabla)
-        List<Registro> ultimosRegistros = registros.stream()
-                .sorted((r1, r2) -> r2.getCreatedAt().compareTo(r1.getCreatedAt()))
-                .limit(10)
-                .collect(Collectors.toList());
+        List<Registro> ultimosRegistros = registroService.findTopNByCreatedAtDesc(10);
         model.addAttribute("registros", ultimosRegistros);
         
         // Vehículos activos para gestión directa
-        List<Registro> activos = registros.stream()
-                .filter(Registro::getActivo)
-                .collect(Collectors.toList());
+        List<Registro> activos = registroService.findByActivoTrue(); // Optimizado
+
         model.addAttribute("vehiculosActivosList", activos);
 
         return "adminDashboard";
@@ -137,6 +123,16 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("error", "Error al eliminar el registro.");
         }
         return "redirect:/admin/dashboard";
+    }
+
+    @GetMapping("/backup")
+    public String backupPage(Model model) {
+        User user = getAuthenticatedUser();
+        if (user == null || (user.getRol() != RolUsuario.ADMIN && user.getRol() != RolUsuario.SUPERADMIN)) {
+            return "redirect:/home";
+        }
+        model.addAttribute("user", user);
+        return "backup";
     }
 
     @GetMapping("/backup/csv")
@@ -177,10 +173,15 @@ public class AdminController {
             csv.append("\n");
         }
 
+        // Convertir a bytes asegurando UTF-8
         byte[] out = csv.toString().getBytes(StandardCharsets.UTF_8);
+        
         HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=backup_cundipark_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".csv");
-        responseHeaders.setContentType(MediaType.parseMediaType("text/csv"));
+        String filename = "backup_cundipark_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".csv";
+        
+        responseHeaders.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename);
+        responseHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        responseHeaders.setContentLength(out.length);
 
         return new ResponseEntity<>(out, responseHeaders, HttpStatus.OK);
     }

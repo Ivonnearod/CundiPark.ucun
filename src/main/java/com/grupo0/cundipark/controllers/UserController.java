@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -97,9 +98,7 @@ public class UserController {
         
         model.addAttribute("vehiculoActual", registroService.findVehiculoActivoPorUsuario(user));
         // Filtrar solo bloques activos para el formulario
-        List<Bloque> bloquesActivos = bloqueService.getAllBloques().stream()
-                .filter(b -> Boolean.TRUE.equals(b.getActivo()))
-                .collect(Collectors.toList());
+        List<Bloque> bloquesActivos = bloqueService.getBloquesActivos();
         model.addAttribute("bloques", bloquesActivos);
         // El historial se consulta ahora en su propia página /historico
 
@@ -115,7 +114,7 @@ public class UserController {
         // Calcular ocupación para mostrar en la página de login
         try {
             List<Bloque> todosBloques = bloqueService.getAllBloques();
-            long vehiculosActivos = registroService.findByActivoTrue().size();
+            long vehiculosActivos = registroService.countActiveRegistros();
             int capacidadTotal = todosBloques.stream().mapToInt(Bloque::getCapacidad).sum();
             double ocupacion = (capacidadTotal > 0) ? ((double) vehiculosActivos / capacidadTotal) * 100 : 0;
             
@@ -148,6 +147,20 @@ public class UserController {
             result.rejectValue("passwordConfirmation", "error.user", "Las contraseñas no coinciden");
         }
 
+        // Validar formato de email
+        if (!ValidadorEmail.esValido(user.getEmail())) {
+            result.rejectValue("email", "error.user", "El formato del email no es válido.");
+        }
+
+        // Validar fortaleza de la contraseña
+        List<String> erroresContrasena = ValidadorContrasena.obtenerErrores(user.getPassword());
+        if (!erroresContrasena.isEmpty()) {
+            for (String error : erroresContrasena) {
+                result.rejectValue("password", "error.user", error);
+            }
+        }
+
+        // Si hay errores de validación, regresar a la página de registro
         if (result.hasErrors()) {
             return "registrationPage";
         }
@@ -161,12 +174,28 @@ public class UserController {
         } catch (DataIntegrityViolationException ex) {
             result.rejectValue("email", "error.user", "El email ya está registrado");
             return "registrationPage";
+        } catch (Exception ex) {
+            System.err.println("Error al registrar usuario: " + ex.getMessage());
+            result.rejectValue("email", "error.user", "Error inesperado al procesar el registro: " + ex.getMessage());
+            Throwable cause = ex;
+            while (cause.getCause() != null) cause = cause.getCause();
+            
+            String errorMessage = cause.getMessage();
+            System.err.println("[ERROR REGISTRO USUARIO] " + errorMessage);
+            ex.printStackTrace();
+            result.rejectValue("email", "error.user", "Error de base de datos: " + errorMessage);
+            return "registrationPage";
         }
     }
 
     @PostMapping("/entrada")
-    public String registrarEntrada(@RequestParam("vehiculoId") Long vehiculoId, 
-                                 @RequestParam("bloqueId") Long bloqueId, 
+    public String registrarEntrada(@RequestParam("placa") String placa,
+                                 @RequestParam("marca") String marca,
+                                 @RequestParam("modelo") String modelo,
+                                 @RequestParam("color") String color,
+                                 @RequestParam("soatVencimiento") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate soatVencimiento,
+                                 @RequestParam("tecnomecanicaVencimiento") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tecnomecanicaVencimiento,
+                                 @RequestParam(value = "bloqueId", required = false) Long bloqueId, 
                                  RedirectAttributes redirectAttributes) {
         User user = getAuthenticatedUser();
         if (user == null) {
@@ -174,33 +203,46 @@ public class UserController {
             return "redirect:/login";
         }
 
+        // LOGS DE DEPURACIÓN
+        System.out.println("[DEBUG] Recibiendo registro - Placa: " + placa + ", BloqueID: " + bloqueId);
+        System.out.println("[DEBUG] Usuario: " + user.getEmail());
+
         if (registroService.findVehiculoActivoPorUsuario(user) != null) {
             redirectAttributes.addFlashAttribute("error", "Ya tienes un vehículo registrado dentro del parqueadero.");
             return "redirect:/home";
         }
-
-        // Obtener el vehículo y validar su existencia y vigencia de documentos
-        Vehiculo vehiculo = vehiculoService.getVehiculoById(vehiculoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehiculo", vehiculoId));
-
-        if (Boolean.FALSE.equals(vehiculo.isSoatVigente()) || Boolean.FALSE.equals(vehiculo.isTecnomecanicaVigente())) {
-            redirectAttributes.addFlashAttribute("error", "No se permite el ingreso: El SOAT y la Revisión Tecnomecánica del vehículo deben estar vigentes.");
-            return "redirect:/home";
-        }
-
-        Bloque bloque = bloqueService.getBloqueById(bloqueId);
-        if (bloque == null || bloque.getDisponibles() <= 0) {
-            redirectAttributes.addFlashAttribute("error", "El bloque seleccionado no tiene cupos disponibles."); // Recargar bloque para asegurar disponibilidad
+        
+        if (placa == null || placa.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "La placa es obligatoria.");
             return "redirect:/home";
         }
 
         try {
-            registroService.registrarEntrada(vehiculo, user, bloque);
+            // Normalización básica si el formateador estricto falla
+            String placaProcesada = (placa != null) ? placa.trim().toUpperCase() : "";
+            
+            // Usamos el método unificado del servicio para procesar la entrada
+            registroService.procesarEntradaCompleta(
+                placaProcesada, marca, modelo, color, 
+                soatVencimiento, tecnomecanicaVencimiento, 
+                user.getId(), bloqueId
+            );
             redirectAttributes.addFlashAttribute("success", "Entrada registrada exitosamente.");
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException | IllegalArgumentException | ResourceNotFoundException e) {
+            // Capturamos el mensaje de error de validación, SOAT, Cupos, etc.
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error inesperado al procesar la entrada.");
+            // Log para debugging
+            System.err.println("[ERROR] Excepción inesperada en registro de entrada: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            Throwable cause = e;
+            while (cause.getCause() != null) cause = cause.getCause();
+            
+            String errorMessage = cause.getMessage();
+            System.err.println("[ERROR ENTRADA VEHICULO] " + errorMessage);
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "Error inesperado: " + e.getClass().getSimpleName());
+            
+            redirectAttributes.addFlashAttribute("error", "Error de base de datos: " + errorMessage);
         }
         
         return "redirect:/home";

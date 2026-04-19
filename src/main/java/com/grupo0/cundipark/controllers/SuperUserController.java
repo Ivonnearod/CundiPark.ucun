@@ -56,27 +56,18 @@ public class SuperUserController {
             return "redirect:/admin/dashboard";
         }
 
-        List<User> todosLosUsuarios = userService.getAllUsers();
         List<User> usuariosAMostrar;
 
         if (search != null && !search.trim().isEmpty()) {
-            usuariosAMostrar = todosLosUsuarios.stream()
-                    .filter(u -> u.getNombre().toLowerCase().contains(search.toLowerCase()) || 
-                                 u.getEmail().toLowerCase().contains(search.toLowerCase()) ||
-                                 (u.getTelefono() != null && u.getTelefono().contains(search)) ||
-                                 (u.getPrograma() != null && u.getPrograma().toLowerCase().contains(search.toLowerCase())) ||
-                                 (u.getTipoVinculacion() != null && u.getTipoVinculacion().toLowerCase().contains(search.toLowerCase())))
-                    .collect(Collectors.toList());
+            usuariosAMostrar = userService.searchUsers(search); // Optimizado
             model.addAttribute("search", search);
         } else {
-            usuariosAMostrar = todosLosUsuarios;
+            usuariosAMostrar = userService.getAllUsers();
         }
+        long activos = userService.countActiveUsers(); // Optimizado
+        long admins = userService.countUsersByRole(RolUsuario.ADMIN); // Optimizado
 
-        // Estadísticas para el dashboard
-        long activos = todosLosUsuarios.stream().filter(User::getActivo).count();
-        long admins = todosLosUsuarios.stream().filter(this::isAdministrative).count();
-
-        model.addAttribute("totalUsuarios", todosLosUsuarios.size());
+        model.addAttribute("totalUsuarios", userService.getAllUsers().size());
         model.addAttribute("usuariosActivos", activos);
         model.addAttribute("totalAdmins", admins);
         model.addAttribute("listausuarios", usuariosAMostrar);
@@ -180,9 +171,7 @@ public class SuperUserController {
         model.addAttribute("user", currentUser); // Agregado para consistencia
 
         // Filtrar para mostrar solo administradores
-        List<User> admins = userService.getAllUsers().stream()
-                .filter(u -> u.getRol() == RolUsuario.ADMIN)
-                .collect(Collectors.toList());
+        List<User> admins = userService.findUsersByRole(RolUsuario.ADMIN); // Optimizado
         model.addAttribute("listaAdmins", admins);
 
         return "superuserAdministradores";

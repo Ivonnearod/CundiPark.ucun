@@ -23,6 +23,9 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="text-secondary fw-bold"><i class="fas fa-user-shield me-2" style="color: var(--primary-blue);"></i>Gestión Administrativa</h2>
             <div class="d-flex gap-2">
+                <a th:href="@{/admin/backup/sql}" class="btn btn-success rounded-pill px-4 shadow-sm" download="backup.sql">
+                    <i class="fas fa-download me-2"></i>Descargar Backup
+                </a>
                 <a th:href="@{/superuser/dashboard}" class="btn btn-primary rounded-pill px-4 shadow-sm">
                     <i class="fas fa-users-cog me-2"></i>Gestión de Usuarios
                 </a>
@@ -100,7 +103,7 @@
                         </thead>
                         <tbody>
                             <tr th:each="activo : ${vehiculosActivosList}">
-                                <td><span class="badge bg-primary px-3 py-2 badge-plate" th:text="${activo.placa}">AAA123</span></td>
+                                <td><span class="badge bg-primary px-3 py-2 badge-plate" th:text="${activo.vehiculo.placa}">AAA123</span></td>
                                 <td th:text="${activo.user.nombre}">Nombre</td>
                                 <td th:text="${activo.bloque.nombre}">Bloque</td>
                                 <td th:text="${#temporals.format(activo.createdAt, 'dd/MM HH:mm')}">Hora</td>
@@ -151,7 +154,7 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="reg : ${registros}">
-                                        <td><span class="badge bg-light text-dark border badge-plate" th:text="${reg.placa}">AAA123</span></td>
+                                        <td><span class="badge bg-light text-dark border badge-plate" th:text="${reg.vehiculo.placa}">AAA123</span></td>
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="me-2 text-primary">
